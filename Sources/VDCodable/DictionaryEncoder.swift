@@ -9,6 +9,8 @@ import Foundation
 
 open class DictionaryEncoder: CodableEncoder {
     
+    public init() {}
+    
     open func encode<T: Encodable>(_ value: T) throws -> Any {
         var encoder = VDEncoder(boxer: Boxer())
         return try encoder.encode(value)
