@@ -23,6 +23,7 @@ open class VDJSONDecoder {
 		self.dateDecodingStrategy = dateDecodingStrategy
 		self.keyDecodingStrategy = keyDecodingStrategy
 		self.tryDecodeFromQuotedString = tryDecodeFromQuotedString
+        self.customDecoding = customDecoding
 	}
 	
     open func decode<D: Decodable>(_ type: D.Type, json: JSON) throws -> D {
