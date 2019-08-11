@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "UnwrapOperator",
+        "repositoryURL": "https://github.com/dankinsoid/UnwrapOperator.git",
+        "state": {
+          "branch": null,
+          "revision": "b9f1b637350e8802283322537d1b760f3ba61a64",
+          "version": "0.1.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
