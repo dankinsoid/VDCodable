@@ -16,7 +16,7 @@ public enum JSON: Codable {
 	case object([String: JSON])
 	case null
 	
-	subscript(dynamicMember member: String) -> JSON? {
+	public subscript(dynamicMember member: String) -> JSON? {
 		return self[member]
 	}
 	
