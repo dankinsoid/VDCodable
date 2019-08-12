@@ -26,7 +26,7 @@ open class URLQueryEncoder: CodableEncoder {
         guard let array = query.array else {
             throw QueryValue.Errors.unknown
         }
-        let strings: [String] = try array.map {
+        let strings: [URLQueryItem] = try array.map {
             guard var key = $0.0.first else {
                 throw QueryValue.Errors.unknown
             }
@@ -34,10 +34,13 @@ open class URLQueryEncoder: CodableEncoder {
             if $0.0.count > 1 {
                 key += "[" + chain + "]"
             }
-            return key + QueryValue.setter + $0.1
+            return URLQueryItem(name: key, value: $0.1)
         }
         if !strings.isEmpty {
-            return baseURL.appendingPathComponent(QueryValue.start + strings.joined(separator: QueryValue.separator))
+            var components = try URLComponents(url: baseURL, resolvingAgainstBaseURL: false)~!
+            components.queryItems = strings
+            return try components.url~!
+//            return baseURL.appendingPathComponent(QueryValue.start + strings.joined(separator: QueryValue.separator))
         }
         return baseURL
     }
