@@ -10,16 +10,16 @@ import UnwrapOperator
 
 open class URLQueryDecoder: CodableDecoder {
     public typealias Input = URL
-    public var dateEncodingStrategy: DateCodingStrategy
-    public var arrayEncodingStrategy: ArrayDecodingStrategy
+    public var dateDecodingStrategy: DateCodingStrategy
+    public var arrayDecodingStrategy: ArrayDecodingStrategy
     
-    public init(dateEncodingStrategy: DateCodingStrategy = .unixTimeSeconds, arrayEncodingStrategy: ArrayDecodingStrategy = .commaSeparator) {
-        self.dateEncodingStrategy = dateEncodingStrategy
-        self.arrayEncodingStrategy = arrayEncodingStrategy
+    public init(dateDecodingStrategy: DateCodingStrategy = .unixTimeSeconds, arrayDecodingStrategy: ArrayDecodingStrategy = .commaSeparator) {
+        self.dateDecodingStrategy = dateDecodingStrategy
+        self.arrayDecodingStrategy = arrayDecodingStrategy
     }
     
     public func decode<T: Decodable>(_ type: T.Type, from data: URL) throws -> T {
-        let unboxer = try Unboxer(data, dateEncodingStrategy: dateEncodingStrategy, arrayEncodingStrategy: arrayEncodingStrategy)
+        let unboxer = try Unboxer(data, dateDecodingStrategy: dateDecodingStrategy, arrayDecodingStrategy: arrayDecodingStrategy)
         return try T(from: VDDecoder(unboxer: unboxer))
     }
 
@@ -48,36 +48,37 @@ open class URLQueryDecoder: CodableDecoder {
 fileprivate struct Unboxer: DecodingUnboxer {
     let input: QueryValue
     let codingPath: [CodingKey]
-    let dateEncodingStrategy: URLQueryDecoder.DateCodingStrategy
-    let arrayEncodingStrategy: URLQueryDecoder.ArrayDecodingStrategy
+    let dateDecodingStrategy: URLQueryDecoder.DateCodingStrategy
+    let arrayDecodingStrategy: URLQueryDecoder.ArrayDecodingStrategy
     
     func decodeNil() -> Bool {
         return false
     }
     
-    init(_ input: String, dateEncodingStrategy: URLQueryDecoder.DateCodingStrategy, arrayEncodingStrategy: URLQueryDecoder.ArrayDecodingStrategy) throws {
-        self.input = try QueryValue(input)
+    init(_ input: QueryValue, dateDecodingStrategy: URLQueryDecoder.DateCodingStrategy, arrayDecodingStrategy: URLQueryDecoder.ArrayDecodingStrategy) throws {
+        self.input = input
         self.codingPath = []
-        self.dateEncodingStrategy = dateEncodingStrategy
-        self.arrayEncodingStrategy = arrayEncodingStrategy
+        self.dateDecodingStrategy = dateDecodingStrategy
+        self.arrayDecodingStrategy = arrayDecodingStrategy
     }
     
-    init(_ url: URL, dateEncodingStrategy: URLQueryDecoder.DateCodingStrategy, arrayEncodingStrategy: URLQueryDecoder.ArrayDecodingStrategy) throws {
-        let string: String
-        let absolute = url.absoluteString.removingPercentEncoding ?? url.absoluteString
-        if absolute.contains(QueryValue.start) {
-            string = try absolute.components(separatedBy: QueryValue.start).last~!
+    init(_ url: URL, dateDecodingStrategy: URLQueryDecoder.DateCodingStrategy, arrayDecodingStrategy: URLQueryDecoder.ArrayDecodingStrategy) throws {
+        let components = try URLComponents(url: url, resolvingAgainstBaseURL: false)~!
+        let items = components.queryItems ?? []
+        let query: QueryValue
+        if items.isEmpty {
+            query = .single("")
         } else {
-            string = ""
+            query = .keyed(items.map { (QueryValue.separateKey($0.name), $0.value ?? "") })
         }
-        self = try Unboxer(string, dateEncodingStrategy: dateEncodingStrategy, arrayEncodingStrategy: arrayEncodingStrategy)
+        self = try Unboxer(query, dateDecodingStrategy: dateDecodingStrategy, arrayDecodingStrategy: arrayDecodingStrategy)
     }
     
     init(input: QueryValue, path: [CodingKey], other unboxer: Unboxer) {
         self.input = input
         self.codingPath = path
-        dateEncodingStrategy = unboxer.dateEncodingStrategy
-        arrayEncodingStrategy = unboxer.arrayEncodingStrategy
+        dateDecodingStrategy = unboxer.dateDecodingStrategy
+        arrayDecodingStrategy = unboxer.arrayDecodingStrategy
     }
     
     private func getString() throws -> String {
@@ -88,7 +89,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
     }
     
     func decodeArray() throws -> [QueryValue] {
-        switch arrayEncodingStrategy {
+        switch arrayDecodingStrategy {
         case .commaSeparator:
             let string = try getString()
             return string.components(separatedBy: QueryValue.comma).map({ .single($0) })
