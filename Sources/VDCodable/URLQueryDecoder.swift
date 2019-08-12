@@ -64,8 +64,9 @@ fileprivate struct Unboxer: DecodingUnboxer {
     
     init(_ url: URL, dateEncodingStrategy: URLQueryDecoder.DateCodingStrategy, arrayEncodingStrategy: URLQueryDecoder.ArrayDecodingStrategy) throws {
         let string: String
-        if url.absoluteString.contains(QueryValue.start) {
-            string = try url.absoluteString.components(separatedBy: QueryValue.start).last~!
+        let absolute = url.absoluteString.removingPercentEncoding ?? url.absoluteString
+        if absolute.contains(QueryValue.start) {
+            string = try absolute.components(separatedBy: QueryValue.start).last~!
         } else {
             string = ""
         }
