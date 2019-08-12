@@ -211,6 +211,7 @@ enum QueryValue {
             case QueryValue.openKey:
                 if result.isEmpty, !str.isEmpty {
                     result.append(str)
+                    str = ""
                 }
             case QueryValue.closeKey:
                 result.append(str)
