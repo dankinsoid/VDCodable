@@ -1,6 +1,5 @@
 //
 //  TypeMirror.swift
-//  URLCoder
 //
 //  Created by Данил Войдилов on 21/09/2018.
 //  Copyright © 2018 Данил Войдилов. All rights reserved.
@@ -10,9 +9,19 @@ import Foundation
 
 extension Mirror {
     
-    public init<T: Decodable>(reflectingType type: T.Type) {
+    public init(reflectingType type: Decodable.Type) {
+        let decoder = _Decoder()
+        let _ = try? type.init(from: decoder)
+        self.init(type: type, decoder: decoder)
+    }
+    
+    public init<T: Decodable>(_ type: T.Type) {
         let decoder = _Decoder()
         let _ = try? T(from: decoder)
+        self.init(type: type, decoder: decoder)
+    }
+    
+    private init(type: Decodable.Type, decoder: _Decoder) {
         let childs = decoder.container.value.map({ Mirror.Child(label: $0.key, value: $0.value.value) })
         self.init(type, children: childs)
     }
@@ -169,7 +178,7 @@ fileprivate struct _SingleValueDecodingContainer: SingleValueDecodingContainer {
     func decode(_ type: UInt16.Type) throws -> UInt16 { decodeAny(type); return 0 }
     func decode(_ type: UInt32.Type) throws -> UInt32 { decodeAny(type); return 0 }
     func decode(_ type: UInt64.Type) throws -> UInt64 { decodeAny(type); return 0 }
-    func decode<T>(_ type: T.Type) throws -> T where T : Decodable {
+    func decode<T: Decodable>(_ type: T.Type) throws -> T {
         decodeAny(type)
         return decodeType()
     }

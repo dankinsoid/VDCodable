@@ -30,10 +30,6 @@ open class URLQueryDecoder: CodableDecoder {
         case custom((_ path: [CodingKey], _ string: String) throws -> [String])
     }
     
-    public enum DictionaryDecodingStrategy {
-        case associative
-    }
-    
     public enum DateCodingStrategy {
         case unixTimeSeconds
         case unixTimeMilliseconds
@@ -183,26 +179,6 @@ enum QueryValue {
     internal static let openKey: Character = "["
     internal static let closeKey: Character = "]"
     internal static let point: Character = "."
-    
-    init(_ string: String) throws {
-        if string.isEmpty {
-            self = .keyed([])
-            return
-        }
-        if !string.contains(QueryValue.setter) {
-            self = .single(string)
-            return
-        }
-        let components = string.components(separatedBy: QueryValue.separator)
-        let it = try components.map { str -> ([String], String) in
-            let array = str.components(separatedBy: QueryValue.setter)
-            guard array.count == 2 else {
-                throw Errors.noEqualSign(str)
-            }
-            return (QueryValue.separateKey(array[0]), array[1])
-        }
-        self = .keyed(it)
-    }
     
     static func separateKey(_ key: String) -> [String] {
         var result: [String] = []
