@@ -9,6 +9,18 @@ import Foundation
 
 extension Mirror {
     
+    public static func reflect<T: Decodable>(_ type: T.Type) -> [String: Any.Type] {
+        let decoder = _Decoder()
+        let _ = try? T(from: decoder)
+        return decoder.container.value.mapValues { $0.value }
+    }
+    
+    public static func reflect(type: Decodable.Type) -> [String: Any.Type] {
+        let decoder = _Decoder()
+        let _ = try? type.init(from: decoder)
+        return decoder.container.value.mapValues { $0.value }
+    }
+    
     public init(reflectingType type: Decodable.Type) {
         let decoder = _Decoder()
         let _ = try? type.init(from: decoder)
@@ -151,7 +163,6 @@ fileprivate struct _UnkeyedDecodingContainer: UnkeyedDecodingContainer {
     func superDecoder() throws -> Decoder {
         return _Decoder()
     }
-    
     
 }
 

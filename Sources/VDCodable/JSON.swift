@@ -16,8 +16,8 @@ public enum JSON: Codable {
 	case object([String: JSON])
 	case null
 	
-	public subscript(dynamicMember member: String) -> JSON? {
-		return self[member]
+	public subscript(dynamicMember member: String) -> JSON {
+		return self[member] ?? .null
 	}
 	
 	public var data: Data {
@@ -312,6 +312,22 @@ extension JSON {
 	public func toArray() -> [Any]? { return extract() as? [Any] }
 	public func toDictionary() -> [String: Any]? { return extract() as? [String: Any] }
 	
+}
+
+extension Optional where Wrapped == JSON {
+    
+    public subscript(index: Int) -> JSON? {
+        return self?[index]
+    }
+    
+    public subscript(key: String) -> JSON? {
+        return self?[key]
+    }
+    
+    public subscript<T: RawRepresentable>(key: T) -> JSON? where T.RawValue == String {
+        return self?[key]
+    }
+    
 }
 
 extension JSON: CustomStringConvertible {
