@@ -98,7 +98,7 @@ extension DecodingUnboxer {
 
 public struct VDDecoder<Unboxer: DecodingUnboxer>: Decoder {
     typealias Input = Unboxer.Input
-    let unboxer: Unboxer
+    public let unboxer: Unboxer
     public var userInfo: [CodingUserInfoKey : Any] { return unboxer.userInfo }
     public var codingPath: [CodingKey] { return unboxer.codingPath }
     

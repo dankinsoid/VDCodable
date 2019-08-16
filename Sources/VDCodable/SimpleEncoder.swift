@@ -60,7 +60,7 @@ public struct VDEncoder<Boxer: EncodingBoxer>: Encoder {
     public var codingPath: [CodingKey] { return boxer.codingPath }
     public var userInfo: [CodingUserInfoKey: Any] { return boxer.userInfo }
     fileprivate var storage = EncoderStorage<Boxer.Output>(.single(SingleStorage()))
-    fileprivate let boxer: Boxer
+    public let boxer: Boxer
     
     public init(boxer: Boxer) {
         self.boxer = boxer
