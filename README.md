@@ -10,6 +10,7 @@ This repository includes some useful tools for `Codable` protocol and data decod
 ## Usage
 
 1. `JSON`
+
 `JSON` enum makes it easy to deal with JSON data.
 Use `String`, `Int` subscripts and dynamic member lookup ("dot" syntax) to retrieve a value:
 ```swift
@@ -20,14 +21,18 @@ if let name = json.root.array[0]?.name.string {...}
 Confirms to `Codable`.
 
 2. `VDJSONDecoder`
+
 An object that decodes instances of a data type from JSON objects.
 Main differences from Foundation `JSONDecoder`:
 - Decoding non-string types from quoted values (like "true", "0.0")
 - Custom JSON parsing via `(([CodingKey], JSON) -> JSON)` closure
 - Purely Swift and faster
 3. `VDJSONEncoder`
+
 Purely Swift version of `JSONEncoder`.
+
 4. `URLQueryEncoder` and `URLQueryDecoder`
+
 Encoder and decoder for query strings.
 ```swift
 struct SomeStruct: Codable {
@@ -40,18 +45,26 @@ let url = try? URLQueryEncoder().encode(value, for: baseURL)
 //url = "https://base.url?title=Query_string&number=0"
 ```
 5. `DictionaryDecoder` and `DictionaryEncoder`
+
 6. `NSManagedDecodable`, `NSManagedEncodable` and `NSManagedCodable` protocols
+
 Protocols that make your `NSManagedObject` subclasses confirm to `Codable` protocol.
+
 7. `PlainCodingKey` 
+
 Simple `CodingKey` struct.
+
 8. Type reflection for `Decodable` types
+
 ```swift
 let properties: [String: Any.Type] = Mirror.reflect(SomeType.self)
 //or Mirror(SomeType.self).children
 ``` 
 9. Tools for creating custom encoders/decoders
+
 Based on similar logic when writing different encoders/decoders `DecodingUnboxer` and `EncodingBoxer` protocols were implemented.
 Examples of usage are all encoders in decoders in this repo.
+
 ## Installation
 1.  [CocoaPods](https://cocoapods.org)
 Add the following line to your Podfile:
