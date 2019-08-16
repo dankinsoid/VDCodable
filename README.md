@@ -36,8 +36,8 @@ Purely Swift version of `JSONEncoder`.
 Encoder and decoder for query strings.
 ```swift
 struct SomeStruct: Codable {
-var title = "Query_string"
-let number = 0
+  var title = "Query_string"
+  let number = 0
 }
 let baseURL = URL(string: "https://base.url")!
 let value = SomeStruct() 
@@ -82,13 +82,13 @@ Create a `Package.swift` file.
 import PackageDescription
 
 let package = Package(
-name: "SomeProject",
-dependencies: [
-.package(url: "https://github.com/dankinsoid/VDCodable.git", from: "0.1.0")
-],
-targets: [
-.target(name: "SomeProject", dependencies: ["VDCodable"])
-]
+  name: "SomeProject",
+  dependencies: [
+    .package(url: "https://github.com/dankinsoid/VDCodable.git", from: "0.1.0")
+    ],
+  targets: [
+    .target(name: "SomeProject", dependencies: ["VDCodable"])
+    ]
 )
 ```
 ```ruby
