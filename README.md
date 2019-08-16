@@ -18,6 +18,7 @@ if let name = json.root.array[0]?.name.string {...}
 ```
 `JSON` enum uses purely Swift JSON serialization based on [Swift Protobuf](https://github.com/apple/swift-protobuf/tree/master/Sources/SwiftProtobuf) implementation, which is extremely fast.
 Confirms to `Codable`.
+
 2. `VDJSONDecoder`
 An object that decodes instances of a data type from JSON objects.
 Main differences from Foundation `JSONDecoder`:
