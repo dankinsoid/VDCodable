@@ -67,6 +67,7 @@ Examples of usage are all encoders in decoders in this repo.
 
 ## Installation
 1.  [CocoaPods](https://cocoapods.org)
+
 Add the following line to your Podfile:
 ```ruby
 pod 'VDCodable'
@@ -74,6 +75,7 @@ pod 'VDCodable'
 and run `pod update` from the podfile directory first.
 
 2. [Swift Package Manager](https://github.com/apple/swift-package-manager)
+
 Create a `Package.swift` file.
 ```swift
 // swift-tools-version:5.0
