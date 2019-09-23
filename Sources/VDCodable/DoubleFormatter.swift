@@ -96,15 +96,15 @@ internal class DoubleFormatter {
         return d
     }
 
-    func floatToUtf8(_ f: Float) -> UnsafeBufferPointer<UInt8> {
+    func floatToUtf8(_ f: Float, fraction: Int32?) -> UnsafeBufferPointer<UInt8> {
         // This many digits suffices for any IEEE754 single-precision number.
-        let floatDigitsToPrint: Int32 = 9
+        let floatDigitsToPrint: Int32 = fraction ?? 9
         return _doubleToUtf8(Double(f), digits: floatDigitsToPrint)
     }
 
-    func doubleToUtf8(_ d: Double) -> UnsafeBufferPointer<UInt8> {
+    func doubleToUtf8(_ d: Double, fraction: Int32?) -> UnsafeBufferPointer<UInt8> {
         // This many digits suffices for any IEEE754 double-precision number.
-        let doubleDigitsToPrint: Int32 = 17
+        let doubleDigitsToPrint: Int32 = fraction ?? 17
         return _doubleToUtf8(d, digits: doubleDigitsToPrint)
     }
 

@@ -67,8 +67,11 @@ internal struct ProtobufJSONEncoder {
     private(set) var data = [UInt8]()
     var separator: UInt8?
     private let doubleFormatter = DoubleFormatter()
+    let maxFractionDigits: Int32?
 	
-    internal init() {}
+    internal init(maxFractionDigits: Int32? = nil) {
+        self.maxFractionDigits = maxFractionDigits
+    }
 
     internal var dataResult: Data { return Data(data) }
 
@@ -194,7 +197,7 @@ internal struct ProtobufJSONEncoder {
             if let v = Int64(exactly: Double(value)) {
                 appendInt(value: v)
             } else {
-                let formatted = doubleFormatter.floatToUtf8(value)
+                let formatted = doubleFormatter.floatToUtf8(value, fraction: maxFractionDigits)
                 data.append(contentsOf: formatted)
             }
         }
@@ -216,7 +219,7 @@ internal struct ProtobufJSONEncoder {
             if let v = Int64(exactly: value) {
                 appendInt(value: v)
             } else {
-                let formatted = doubleFormatter.doubleToUtf8(value)
+                let formatted = doubleFormatter.doubleToUtf8(value, fraction: maxFractionDigits)
                 data.append(contentsOf: formatted)
             }
         }
@@ -241,11 +244,6 @@ internal struct ProtobufJSONEncoder {
         } else {
             appendUInt(value: UInt64(bitPattern: value))
         }
-    }
-
-    /// Write an Enum as an int.
-    internal mutating func putEnumInt(value: Int) {
-        appendInt(value: Int64(value))
     }
 
     /// Write an `Int64` using protobuf JSON quoting conventions.

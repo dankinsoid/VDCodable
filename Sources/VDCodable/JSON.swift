@@ -163,7 +163,7 @@ public enum JSON: Codable {
 		}
 	}
 	
-	fileprivate func putSelf(to encoder: inout ProtobufJSONEncoder) {
+    func putSelf(to encoder: inout ProtobufJSONEncoder) {
 		switch self {
 		case .object(let object):
 			encoder.separator = nil

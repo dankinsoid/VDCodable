@@ -12,16 +12,21 @@ open class VDJSONEncoder {
 	
     open var dateEncodingStrategy: DateEncodingStrategy
     open var keyEncodingStrategy: KeyEncodingStrategy
+    open var maximumFractionLength: Int32?
     open var customEncoding: (([CodingKey], JSON) throws -> JSON)?
     
-    public init(dateEncodingStrategy: DateEncodingStrategy = .deferredFromDate, keyEncodingStrategy: KeyEncodingStrategy = .useDefaultKeys, customEncoding: (([CodingKey], JSON) throws -> JSON)? = nil) {
+    public init(dateEncodingStrategy: DateEncodingStrategy = .deferredFromDate, keyEncodingStrategy: KeyEncodingStrategy = .useDefaultKeys, maximumFractionLength: Int32? = nil, customEncoding: (([CodingKey], JSON) throws -> JSON)? = nil) {
         self.dateEncodingStrategy = dateEncodingStrategy
         self.keyEncodingStrategy = keyEncodingStrategy
+        self.maximumFractionLength = maximumFractionLength
         self.customEncoding = customEncoding
     }
 	
 	open func encode<T: Encodable>(_ value: T) throws -> Data {
-		return try encodeToJSON(value).data
+        let json = try encodeToJSON(value)
+        var encoder = ProtobufJSONEncoder(maxFractionDigits: maximumFractionLength)
+        json.putSelf(to: &encoder)
+        return encoder.dataResult
 	}
     
     open func encodeToJSON<T: Encodable>(_ value: T) throws -> JSON {
