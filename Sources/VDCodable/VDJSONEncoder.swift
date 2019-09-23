@@ -11,30 +11,30 @@ import Foundation
 open class VDJSONEncoder {
 	
     open var dateEncodingStrategy: DateEncodingStrategy
+    open var dataEncodingStrategy: DataEncodingStrategy
     open var keyEncodingStrategy: KeyEncodingStrategy
     open var maximumFractionLength: Int32?
-    open var customEncoding: (([CodingKey], JSON) throws -> JSON)?
+    open var customEncoding: (([CodingKey], Data) throws -> Data)?
     
-    public init(dateEncodingStrategy: DateEncodingStrategy = .deferredFromDate, keyEncodingStrategy: KeyEncodingStrategy = .useDefaultKeys, maximumFractionLength: Int32? = nil, customEncoding: (([CodingKey], JSON) throws -> JSON)? = nil) {
+    public init(dateEncodingStrategy: DateEncodingStrategy = .deferredFromDate, dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy = .deferredFromData, keyEncodingStrategy: KeyEncodingStrategy = .useDefaultKeys, maximumFractionLength: Int32? = nil, customEncoding: (([CodingKey], Data) throws -> Data)? = nil) {
         self.dateEncodingStrategy = dateEncodingStrategy
+        self.dataEncodingStrategy = dataEncodingStrategy
         self.keyEncodingStrategy = keyEncodingStrategy
         self.maximumFractionLength = maximumFractionLength
         self.customEncoding = customEncoding
     }
 	
 	open func encode<T: Encodable>(_ value: T) throws -> Data {
-        let json = try encodeToJSON(value)
-        var encoder = ProtobufJSONEncoder(maxFractionDigits: maximumFractionLength)
-        json.putSelf(to: &encoder)
-        return encoder.dataResult
+        var encoder = VDEncoder(boxer: Boxer(dateEncodingStrategy: dateEncodingStrategy, keyEncodingStrategy: keyEncodingStrategy, dataEncodingStrategy: dataEncodingStrategy, maximumFractionLength: maximumFractionLength, customEncoding: customEncoding))
+        let data = try encoder.encode(value)
+        return data
 	}
     
     open func encodeToJSON<T: Encodable>(_ value: T) throws -> JSON {
         if let result = value as? JSON {
-            return try customEncoding?([], result) ?? result
+            return result
         }
-        var encoder = VDEncoder(boxer: Boxer(dateEncodingStrategy: dateEncodingStrategy, keyEncodingStrategy: keyEncodingStrategy, customEncoding: customEncoding))
-        let json = try encoder.encode(value)
+        let json = try JSON(from: encode(value))
         return json
     }
 	
@@ -43,54 +43,106 @@ open class VDJSONEncoder {
 fileprivate struct Boxer: EncodingBoxer {
     let codingPath: [CodingKey]
     let dateEncodingStrategy: VDJSONEncoder.DateEncodingStrategy
+    let dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy
     let keyEncodingStrategy: VDJSONEncoder.KeyEncodingStrategy
-    let customEncoding: (([CodingKey], JSON) throws -> JSON)?
+    let customEncoding: (([CodingKey], Data) throws -> Data)?
+    let maximumFractionLength: Int32?
+    private var encoder: ProtobufJSONEncoder {
+        return ProtobufJSONEncoder(maxFractionDigits: maximumFractionLength)
+    }
     
-    init(dateEncodingStrategy: VDJSONEncoder.DateEncodingStrategy, keyEncodingStrategy: VDJSONEncoder.KeyEncodingStrategy, customEncoding: (([CodingKey], JSON) throws -> JSON)?) {
+    init(dateEncodingStrategy: VDJSONEncoder.DateEncodingStrategy, keyEncodingStrategy: VDJSONEncoder.KeyEncodingStrategy, dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy, maximumFractionLength: Int32?, customEncoding: (([CodingKey], Data) throws -> Data)?) {
         self.dateEncodingStrategy = dateEncodingStrategy
+        self.dataEncodingStrategy = dataEncodingStrategy
         self.keyEncodingStrategy = keyEncodingStrategy
         self.codingPath = []
+        self.maximumFractionLength = maximumFractionLength
         self.customEncoding = customEncoding
     }
     
     init(path: [CodingKey], other boxer: Boxer) {
         codingPath = path
         dateEncodingStrategy = boxer.dateEncodingStrategy
+        dataEncodingStrategy = boxer.dataEncodingStrategy
+        maximumFractionLength = boxer.maximumFractionLength
         keyEncodingStrategy = boxer.keyEncodingStrategy
         customEncoding = boxer.customEncoding
     }
     
-    private func encodeAny(_ json: JSON) throws -> JSON {
+    private func encodeAny(_ json: Data) throws -> Data {
         return try customEncoding?(codingPath, json) ?? json
     }
     
-    func encodeNil() throws -> JSON { return try encodeAny(.null) }
-    func encode(_ array: [JSON]) throws -> JSON { return try encodeAny(.array(array)) }
-    func encode(_ value: Bool) throws -> JSON { return try encodeAny(.bool(value)) }
-    func encode(_ value: String) throws -> JSON { return try encodeAny(.string(value)) }
-    func encode(_ value: Double) throws -> JSON { return try encodeAny(.double(value)) }
-    func encode(_ value: Int) throws -> JSON { return try encodeAny(.int(value)) }
-    
-    func encode(_ dictionary: [String: JSON]) throws -> JSON {
-        var result: [String: JSON]
-        switch keyEncodingStrategy {
-        case .useDefaultKeys:
-            result = dictionary
-        case .convertToSnakeCase:
-            result = [:]
-            dictionary.forEach {
-                result[VDJSONEncoder.KeyEncodingStrategy.keyToSnakeCase($0.key)] = $0.value
-            }
-        case .custom(let block):
-            result = [:]
-            dictionary.forEach {
-                result[block(codingPath)] = $0.value
+    func encodeNil() throws -> Data {
+        var encoder = self.encoder
+        encoder.putNullValue()
+        return try encodeAny(encoder.dataResult)
+    }
+    func encode(_ array: [Data]) throws -> Data {
+        var encoder = self.encoder
+        encoder.openSquareBracket()
+        if let value = array.first {
+            encoder.append(utf8Data: value)
+            var index = 1
+            while index < array.count {
+                encoder.comma()
+                encoder.append(utf8Data: array[index])
+                index += 1
             }
         }
-        return try encodeAny(.object(result))
+        encoder.closeSquareBracket()
+        return try encodeAny(encoder.dataResult)
+    }
+    func encode(_ value: Bool) throws -> Data {
+        var encoder = self.encoder
+        encoder.putBoolValue(value: value)
+        return try encodeAny(encoder.dataResult)
+    }
+    func encode(_ value: String) throws -> Data {
+        var encoder = self.encoder
+        encoder.putStringValue(value: value)
+        return try encodeAny(encoder.dataResult)
+    }
+    func encode(_ value: Double) throws -> Data {
+        var encoder = self.encoder
+        encoder.putDoubleValue(value: value)
+        return try encodeAny(encoder.dataResult)
+    }
+    func encode(_ value: Float) throws -> Data {
+        var encoder = self.encoder
+        encoder.putFloatValue(value: value)
+        return try encodeAny(encoder.dataResult)
+    }
+    func encode(_ value: Int) throws -> Data {
+        var encoder = self.encoder
+        encoder.putInt64(value: Int64(value))
+        return try encodeAny(encoder.dataResult)
     }
     
-    func encode(date: Date) throws -> JSON {
+    func encode(_ dictionary: [String: Data]) throws -> Data {
+        var encoder = self.encoder
+        encoder.separator = nil
+        encoder.openCurlyBracket()
+        for (key, value) in dictionary {
+            encoder.startField(name: self.key(for: key))
+            encoder.append(utf8Data: value)
+        }
+        encoder.closeCurlyBracket()
+        return try encodeAny(encoder.dataResult)
+    }
+    
+    private func key(for string: String) -> String {
+        switch keyEncodingStrategy {
+        case .useDefaultKeys:
+            return string
+        case .convertToSnakeCase:
+            return VDJSONEncoder.KeyEncodingStrategy.keyToSnakeCase(string)
+        case .custom(let block):
+            return block(codingPath)
+        }
+    }
+    
+    func encode(date: Date) throws -> Data {
         switch dateEncodingStrategy {
         case .deferredFromDate:
             var encoder = VDEncoder(boxer: self)
@@ -108,13 +160,47 @@ fileprivate struct Boxer: EncodingBoxer {
             formatter.dateFormat = format
             return try encode(formatter.string(from: date))
         case .custom(let block):
+            var encoder = self.encoder
+            try block(VDEncoder(boxer: self)).putSelf(to: &encoder)
+            return try encodeAny(encoder.dataResult)
+        }
+    }
+    
+    func encode(data: Data) throws -> Data {
+        switch dataEncodingStrategy {
+        case .deferredFromData:
+            var encoder = VDEncoder(boxer: self)
+            return try encoder.encode(data)
+        case .base64:
+            var encoder = self.encoder
+            encoder.putBytesValue(value: data)
+            return try encodeAny(encoder.dataResult)
+        case .custom(let block):
             return try encodeAny(block(VDEncoder(boxer: self)))
         }
     }
     
-    func encode<T: Encodable>(value: T) throws -> JSON {
+    func encode(decimal: Decimal) throws -> Data {
+        let deciamlCnt = Int32(max(-decimal.exponent, 0))
+        var encoder: ProtobufJSONEncoder
+        if let max = maximumFractionLength, max < deciamlCnt {
+            encoder = ProtobufJSONEncoder(maxFractionDigits: max)
+        } else {
+            encoder = ProtobufJSONEncoder(maxFractionDigits: deciamlCnt)
+        }
+        encoder.putDoubleValue(value: (decimal as NSDecimalNumber).doubleValue)
+        return try encodeAny(encoder.dataResult)
+    }
+    
+    func encode<T: Encodable>(value: T) throws -> Data {
         if let date = value as? Date {
             return try encode(date: date)
+        }
+        if let data = value as? Data {
+            return try encode(data: data)
+        }
+        if let decimal = value as? Decimal {
+            return try encode(decimal: decimal)
         }
         var encoder = VDEncoder(boxer: self)
         return try encoder.encode(value)

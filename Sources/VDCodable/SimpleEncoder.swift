@@ -270,8 +270,7 @@ fileprivate struct _KeyedContainer<Key: CodingKey, Boxer: EncodingBoxer>: KeyedE
     }
     
     func encode<T: Encodable>(_ value: T, forKey key: Key) throws {
-        var _encoder = VDEncoder(boxer: boxer(key))
-        output.value[key.stringValue] = try .just(_encoder.encode(value))
+        output.value[key.stringValue] = try .just(boxer(key).encode(value: value))
     }
     
     func nestedContainer<NestedKey: CodingKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
@@ -376,9 +375,7 @@ fileprivate struct _UnkeyedContainer<Boxer: EncodingBoxer>: UnkeyedEncodingConta
     }
     
     mutating func encode<T: Encodable>(_ value: T) throws {
-        var _encoder = VDEncoder(boxer: boxer())
-        let output = try _encoder.encode(value)
-        storage.value.append(.just(output))
+        try storage.value.append(.just(boxer().encode(value: value)))
     }
     
     func nestedContainer<NestedKey: CodingKey>(keyedBy keyType: NestedKey.Type) -> KeyedEncodingContainer<NestedKey> {
@@ -473,8 +470,7 @@ fileprivate final class _SingleContainer<Boxer: EncodingBoxer>: SingleValueEncod
     }
     
     func encode<T: Encodable>(_ value: T) throws {
-        var _encoder = VDEncoder(boxer: boxer)
-        storage.value = try _encoder.encode(value)
+        try storage.value = try boxer.encode(value: value)
     }
     
 }

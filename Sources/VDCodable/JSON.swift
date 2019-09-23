@@ -174,6 +174,7 @@ public enum JSON: Codable {
 			}
 			encoder.closeCurlyBracket()
 		case .array(let array):
+            encoder.separator = nil
 			encoder.openSquareBracket()
 			if let value = array.first {
 				value.putSelf(to: &encoder)
