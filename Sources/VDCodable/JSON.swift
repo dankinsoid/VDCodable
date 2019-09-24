@@ -30,7 +30,7 @@ public enum JSON: Codable {
 		return String(data: data, encoding: .utf8) ?? ""
 	}
 	
-	public init?(from value: Any) {
+	public init?(with value: Any) {
 		if let bl  = value as? Bool   { self = .bool(bl);    return }
 		if let int = value as? Int    { self = .int(int);    return }
 		if let db  = value as? Double { self = .double(db);  return }
@@ -38,7 +38,7 @@ public enum JSON: Codable {
 		if let arr = value as? [Any] {
 			var arrV: [JSON] = []
 			for a in arr {
-				guard let json = JSON(from: a) else { return nil }
+				guard let json = JSON(with: a) else { return nil }
 				arrV.append(json)
 			}
 			self = .array(arrV)
@@ -47,7 +47,7 @@ public enum JSON: Codable {
 		if let dict = value as? [String: Any] {
 			var dictV: [String: JSON] = [:]
 			for (key, v) in dict {
-				guard let json = JSON(from: v) else { return nil }
+				guard let json = JSON(with: v) else { return nil }
 				dictV[key] = json
 			}
 			self = .object(dictV)

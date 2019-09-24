@@ -67,11 +67,11 @@ fileprivate struct Unboxer: DecodingUnboxer {
 	}
     
     func decodeArray() throws -> [JSON] {
-        return try decode([JSON].self) { try JSON(from: $0)~!.array~! }
+        return try decode([JSON].self) { try JSON(from: &$0)~!.array~! }
     }
     
     func decodeDictionary() throws -> [String: JSON] {
-        var dictionary = try decode([String: JSON].self) { try JSON(from: $0)~!.object~! }
+        var dictionary = try decode([String: JSON].self) { try JSON(from: &$0)~!.object~! }
         if case .useDefaultKeys = keyDecodingStrategy {
             return dictionary
         }
@@ -136,6 +136,10 @@ fileprivate struct Unboxer: DecodingUnboxer {
     func decode(_ type: Int.Type) throws -> Int {
         return try decode(type) { try $0.nextSignedInteger() }
     }
+    
+    func decodeDecimal() throws -> Decimal {
+        return try decode(Decimal.self) { try Decimal($0.nextDouble()) }
+    }
 	
 	@inline(__always)
 	func decodeDate(from decoder: VDDecoder<Unboxer>) throws -> Date {
@@ -180,14 +184,23 @@ fileprivate struct Unboxer: DecodingUnboxer {
 		if type == JSON.self, let result = input as? T { return result }
         let decoder = VDDecoder(unboxer: self)
 		if type == Date.self || type as? NSDate.Type != nil {
-			if let result = try decodeDate(from: decoder) as? T {
-				return result
-			} else {
-				throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: codingPath, debugDescription: "Expected to decode \(type) but found \(input.kind) instead."))
-			}
+			let result = try decodeDate(from: decoder)
+            return try cast(result, as: type)
 		}
+        if type == Decimal.self || type as? NSDecimalNumber.Type != nil {
+            let result = try decodeDecimal()
+            return try cast(result, as: type)
+        }
 		return try T.init(from: decoder)
 	}
+    
+    private func cast<A, T>(_ value: A, as type: T.Type) throws -> T {
+        if let result = value as? T {
+            return result
+        } else {
+            throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: codingPath, debugDescription: "Expected to decode \(type) but found \(value) instead."))
+        }
+    }
 	
 }
 
