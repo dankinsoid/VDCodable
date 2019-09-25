@@ -139,6 +139,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
         switch input {
             case .double(let dbl): return dbl
             case .decimal(let dbl): return Double(dbl)
+            case .int(let dbl): return Double(dbl)
             default: break
         }
         return try decode(type) { try $0.nextDouble() }
@@ -152,6 +153,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
         switch input {
             case .double(let dbl): return Decimal(dbl)
             case .decimal(let dbl): return dbl
+            case .int(let dbl): return Decimal(dbl)
             default: break
         }
         return try decode(Decimal.self) { try $0.nextDecimal() }
