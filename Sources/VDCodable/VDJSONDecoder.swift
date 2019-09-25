@@ -12,15 +12,18 @@ import UnwrapOperator
 open class VDJSONDecoder {
 	
 	open var dateDecodingStrategy: DateDecodingStrategy
+    open var dataDecodingStrategy: DataDecodingStrategy
 	open var keyDecodingStrategy: KeyDecodingStrategy
 	open var tryDecodeFromQuotedString: Bool
     open var customDecoding: (([CodingKey], JSON) -> JSON)?
 	public let userInfo: [CodingUserInfoKey : Any] = [:]
 	
 	public init(dateDecodingStrategy: DateDecodingStrategy = .deferredToDate,
+                dataDecodingStrategy: DataDecodingStrategy = .deferredToData,
 				keyDecodingStrategy: KeyDecodingStrategy = .useDefaultKeys,
 				tryDecodeFromQuotedString: Bool = true, customDecoding: (([CodingKey], JSON) -> JSON)? = nil) {
-		self.dateDecodingStrategy = dateDecodingStrategy
+        self.dateDecodingStrategy = dateDecodingStrategy
+        self.dataDecodingStrategy = dataDecodingStrategy
 		self.keyDecodingStrategy = keyDecodingStrategy
 		self.tryDecodeFromQuotedString = tryDecodeFromQuotedString
         self.customDecoding = customDecoding
@@ -28,7 +31,7 @@ open class VDJSONDecoder {
 	
     open func decode<D: Decodable>(_ type: D.Type, json: JSON) throws -> D {
         if type == JSON.self, let result = json as? D { return (customDecoding?([], json) as? D) ?? result }
-        let decoder = VDDecoder(unboxer: Unboxer(json: json, dateDecodingStrategy: dateDecodingStrategy, keyDecodingStrategy: keyDecodingStrategy, tryDecodeFromQuotedString: tryDecodeFromQuotedString, customDecoding: customDecoding))
+        let decoder = VDDecoder(unboxer: Unboxer(json: json, dateDecodingStrategy: dateDecodingStrategy, dataDecodingStrategy: dataDecodingStrategy, keyDecodingStrategy: keyDecodingStrategy, tryDecodeFromQuotedString: tryDecodeFromQuotedString, customDecoding: customDecoding))
         return try D.init(from: decoder)
     }
     
@@ -43,6 +46,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
     let userInfo: [CodingUserInfoKey: Any] = [:]
     let codingPath: [CodingKey]
 	let dateDecodingStrategy: VDJSONDecoder.DateDecodingStrategy
+    let dataDecodingStrategy: VDJSONDecoder.DataDecodingStrategy
 	let keyDecodingStrategy: VDJSONDecoder.KeyDecodingStrategy
     let customDecoding: (([CodingKey], JSON) -> JSON)?
 	let tryDecodeFromQuotedString: Bool
@@ -52,13 +56,15 @@ fileprivate struct Unboxer: DecodingUnboxer {
         self.input = unboxer.customDecoding?(path, input) ?? input
         codingPath = path
         dateDecodingStrategy = unboxer.dateDecodingStrategy
+        dataDecodingStrategy = unboxer.dataDecodingStrategy
         keyDecodingStrategy = unboxer.keyDecodingStrategy
         tryDecodeFromQuotedString = unboxer.tryDecodeFromQuotedString
         customDecoding = unboxer.customDecoding
     }
     
-	init(json: JSON, dateDecodingStrategy: VDJSONDecoder.DateDecodingStrategy, keyDecodingStrategy: VDJSONDecoder.KeyDecodingStrategy, tryDecodeFromQuotedString: Bool, customDecoding: (([CodingKey], JSON) -> JSON)?) {
-		self.dateDecodingStrategy = dateDecodingStrategy
+	init(json: JSON, dateDecodingStrategy: VDJSONDecoder.DateDecodingStrategy, dataDecodingStrategy: VDJSONDecoder.DataDecodingStrategy, keyDecodingStrategy: VDJSONDecoder.KeyDecodingStrategy, tryDecodeFromQuotedString: Bool, customDecoding: (([CodingKey], JSON) -> JSON)?) {
+        self.dateDecodingStrategy = dateDecodingStrategy
+        self.dataDecodingStrategy = dataDecodingStrategy
 		self.keyDecodingStrategy = keyDecodingStrategy
 		self.tryDecodeFromQuotedString = tryDecodeFromQuotedString
         self.customDecoding = customDecoding
@@ -115,7 +121,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
         }
         if tryDecodeFromQuotedString, case .string(let string) = input {
             let data = Data(string.utf8)
-            return try  data.withUnsafeBytes { rawPointer -> T in
+            return try data.withUnsafeBytes { rawPointer -> T in
                 let source = rawPointer.bindMemory(to: UInt8.self)
                 var scanner = JSONScanner(source: source, messageDepthLimit: .max)
                 do {
@@ -189,6 +195,17 @@ fileprivate struct Unboxer: DecodingUnboxer {
 		}
 	}
     
+    @inline(__always)
+    func decodeData(from decoder: VDDecoder<Unboxer>) throws -> Data {
+        switch dataDecodingStrategy {
+        case .deferredToData: return try Data(from: decoder)
+        case .base64:
+            return try decode(Data.self) { try $0.nextBytesValue() }
+        case .custom(let transform):
+            return try transform(decoder)
+        }
+    }
+    
 	@inline(__always)
 	func decode<T: Decodable>(_ type: T.Type) throws -> T {
 		if type == JSON.self, let result = input as? T { return result }
@@ -197,6 +214,10 @@ fileprivate struct Unboxer: DecodingUnboxer {
 			let result = try decodeDate(from: decoder)
             return try cast(result, as: type)
 		}
+        if type == Data.self || type as? NSData.Type != nil {
+            let result = try decodeData(from: decoder)
+            return try cast(result, as: type)
+        }
         if type == Decimal.self || type as? NSDecimalNumber.Type != nil {
             let result = try decodeDecimal()
             return try cast(result, as: type)

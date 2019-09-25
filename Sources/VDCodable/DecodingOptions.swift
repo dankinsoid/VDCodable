@@ -34,6 +34,14 @@ extension VDJSONDecoder {
 		case custom((_ decoder: Decoder) throws -> Date)
 	}
 	
+    /// The strategy to use for decoding `Date` values.
+    public enum DataDecodingStrategy {
+        /// Defer to `Data` for decoding. This is the default strategy.
+        case base64
+        case deferredToData
+        /// Decode the `Data` as a custom value decoded by the given closure.
+        case custom((_ decoder: Decoder) throws -> Data)
+    }
 	/// The strategy to use for automatically changing the value of keys before decoding.
 	public enum KeyDecodingStrategy {
 		/// Use the keys specified by each type. This is the default strategy.

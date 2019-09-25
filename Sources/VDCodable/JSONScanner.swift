@@ -104,6 +104,164 @@ let base64Values: [Int] = [
 	/* 0xf0 */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 ]
 
+private func parseBytes(
+  source: UnsafeBufferPointer<UInt8>,
+  index: inout UnsafeBufferPointer<UInt8>.Index,
+  end: UnsafeBufferPointer<UInt8>.Index
+) throws -> Data {
+    let c = source[index]
+    if c != asciiDoubleQuote {
+        throw JSONDecodingError.malformedString
+    }
+    source.formIndex(after: &index)
+
+    // Count the base-64 digits
+    // Ignore most unrecognized characters in this first pass,
+    // stop at the closing double quote.
+    let digitsStart = index
+    var rawChars = 0
+    var sawSection4Characters = false
+    var sawSection5Characters = false
+    while index != end {
+        var digit = source[index]
+        if digit == asciiDoubleQuote {
+            break
+        }
+
+        if digit == asciiBackslash {
+            source.formIndex(after: &index)
+            if index == end {
+                throw JSONDecodingError.malformedString
+            }
+            let escaped = source[index]
+            switch escaped {
+            case asciiLowerU:
+                // TODO: Parse hex escapes such as \u0041.  Note that
+                // such escapes are going to be extremely rare, so
+                // there's little point in optimizing for them.
+                throw JSONDecodingError.malformedString
+            case asciiForwardSlash:
+                digit = escaped
+            default:
+                // Reject \b \f \n \r \t \" or \\ and all illegal escapes
+                throw JSONDecodingError.malformedString
+            }
+        }
+
+        if digit == asciiPlus || digit == asciiForwardSlash {
+            sawSection4Characters = true
+        } else if digit == asciiMinus || digit == asciiUnderscore {
+            sawSection5Characters = true
+        }
+        let k = base64Values[Int(digit)]
+        if k >= 0 {
+            rawChars += 1
+        }
+        source.formIndex(after: &index)
+    }
+
+    // We reached the end without seeing the close quote
+    if index == end {
+        throw JSONDecodingError.malformedString
+    }
+    // Reject mixed encodings.
+    if sawSection4Characters && sawSection5Characters {
+        throw JSONDecodingError.malformedString
+    }
+
+    // Allocate a Data object of exactly the right size
+    var value = Data(count: rawChars * 3 / 4)
+
+    // Scan the digits again and populate the Data object.
+    // In this pass, we check for (and fail) if there are
+    // unexpected characters.  But we don't check for end-of-input,
+    // because the loop above already verified that there was
+    // a closing double quote.
+    index = digitsStart
+    try value.withUnsafeMutableBytes {
+        (body: UnsafeMutableRawBufferPointer) in
+      if let baseAddress = body.baseAddress, body.count > 0 {
+        var p = baseAddress.assumingMemoryBound(to: UInt8.self)
+        var n = 0
+        var chars = 0 // # chars in current group
+        var padding = 0 // # padding '=' chars
+        digits: while true {
+            let digit = source[index]
+            var k = base64Values[Int(digit)]
+            if k < 0 {
+                switch digit {
+                case asciiDoubleQuote:
+                    break digits
+                case asciiBackslash:
+                    source.formIndex(after: &index)
+                    let escaped = source[index]
+                    switch escaped {
+                    case asciiForwardSlash:
+                        k = base64Values[Int(escaped)]
+                    default:
+                        // Note: Invalid backslash escapes were caught
+                        // above; we should never get here.
+                        throw JSONDecodingError.malformedString
+                    }
+                case asciiSpace:
+                    source.formIndex(after: &index)
+                    continue digits
+                case asciiEqualSign: // Count padding
+                    while true {
+                        switch source[index] {
+                        case asciiDoubleQuote:
+                            break digits
+                        case asciiSpace:
+                            break
+                        case 61:
+                            padding += 1
+                        default: // Only '=' and whitespace permitted
+                            throw JSONDecodingError.malformedString
+                        }
+                        source.formIndex(after: &index)
+                    }
+                default:
+                    throw JSONDecodingError.malformedString
+                }
+            }
+            n <<= 6
+            n |= k
+            chars += 1
+            if chars == 4 {
+                p[0] = UInt8(truncatingIfNeeded: n >> 16)
+                p[1] = UInt8(truncatingIfNeeded: n >> 8)
+                p[2] = UInt8(truncatingIfNeeded: n)
+                p += 3
+                chars = 0
+                n = 0
+            }
+            source.formIndex(after: &index)
+        }
+        switch chars {
+        case 3:
+            p[0] = UInt8(truncatingIfNeeded: n >> 10)
+            p[1] = UInt8(truncatingIfNeeded: n >> 2)
+            if padding == 1 || padding == 0 {
+                return
+            }
+        case 2:
+            p[0] = UInt8(truncatingIfNeeded: n >> 4)
+            if padding == 2 || padding == 0 {
+                return
+            }
+        case 0:
+            if padding == 0 {
+                return
+            }
+        default:
+            break
+        }
+        throw JSONDecodingError.malformedString
+      }
+    }
+    source.formIndex(after: &index)
+    return value
+}
 // JSON encoding allows a variety of \-escapes, including
 // escaping UTF-16 code points (which may be surrogate pairs).
 private func decodeString(_ s: String) -> String? {
@@ -628,7 +786,15 @@ internal struct JSONScanner {
 			throw JSONDecodingError.invalidUTF8
 		}
 	}
-	
+    
+    internal mutating func nextBytesValue() throws -> Data {
+      skipWhitespace()
+      guard hasMoreContent else {
+        throw JSONDecodingError.truncated
+      }
+      return try parseBytes(source: source, index: &index, end: source.endIndex)
+    }
+    
 	/// Returns a fully-parsed string with all backslash escapes
 	/// correctly processed, or nil if next token is not a string.
 	///
