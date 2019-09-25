@@ -181,14 +181,8 @@ fileprivate struct Boxer: EncodingBoxer {
     }
     
     func encode(decimal: Decimal) throws -> Data {
-        let deciamlCnt = Int32(max(-decimal.exponent, 0))
-        var encoder: ProtobufJSONEncoder
-        if let max = maximumFractionLength, max < deciamlCnt {
-            encoder = ProtobufJSONEncoder(maxFractionDigits: max)
-        } else {
-            encoder = ProtobufJSONEncoder(maxFractionDigits: deciamlCnt)
-        }
-        encoder.putDoubleValue(value: (decimal as NSDecimalNumber).doubleValue)
+        var encoder = self.encoder
+        encoder.putDecimalValue(value: decimal)
         return try encodeAny(encoder.dataResult)
     }
     

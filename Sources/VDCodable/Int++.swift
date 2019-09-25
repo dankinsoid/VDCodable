@@ -29,3 +29,17 @@ extension UInt8: UnsignedBitPatternInitializable { typealias Signed = Int8 }
 extension UInt16: UnsignedBitPatternInitializable { typealias Signed = Int16 }
 extension UInt32: UnsignedBitPatternInitializable { typealias Signed = Int32 }
 extension UInt64: UnsignedBitPatternInitializable { typealias Signed = Int64 }
+
+extension Decimal {
+    
+    public var fractionLength: Int { return max(-exponent, 0) }
+    
+}
+
+extension Double {
+    
+    init(_ value: Decimal) {
+        self = (value as NSDecimalNumber).doubleValue
+    }
+    
+}

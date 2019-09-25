@@ -206,7 +206,7 @@ internal struct ProtobufJSONEncoder {
     /// Append a double value to the output.
     /// This handles Nan and infinite values by
     /// writing well-known string values.
-    internal mutating func putDoubleValue(value: Double) {
+    internal mutating func putDoubleValue(value: Double, max: Int32? = nil) {
         if value.isNaN {
             append(staticText: "\"NaN\"")
         } else if !value.isFinite {
@@ -219,10 +219,19 @@ internal struct ProtobufJSONEncoder {
             if let v = Int64(exactly: value) {
                 appendInt(value: v)
             } else {
-                let formatted = doubleFormatter.doubleToUtf8(value, fraction: maxFractionDigits)
+                let formatted = doubleFormatter.doubleToUtf8(value, fraction: max ?? maxFractionDigits)
                 data.append(contentsOf: formatted)
             }
         }
+    }
+    
+    /// Append a double value to the output.
+    /// This handles Nan and infinite values by
+    /// writing well-known string values.
+    internal mutating func putDecimalValue(value: Decimal) {
+        let max = maxFractionDigits == nil ? Int32(value.fractionLength) : min(Int32(value.fractionLength), maxFractionDigits!)
+        let double = (value as NSDecimalNumber).doubleValue
+        putDoubleValue(value: double, max: max)
     }
 
     /// Append a UInt64 to the output (without quoting).

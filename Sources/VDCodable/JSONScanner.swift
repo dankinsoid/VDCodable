@@ -457,11 +457,29 @@ internal struct JSONScanner {
 	// floating-point values, including values that happen to be in quotes.
 	// It's also used by the slow path in parseBareSInt64() and parseBareUInt64()
 	// above to handle integer values that are written in float-point notation.
-	private func parseBareDouble(
+    
+    private func parseBareDouble(
+    source: UnsafeBufferPointer<UInt8>,
+    index: inout UnsafeBufferPointer<UInt8>.Index,
+    end: UnsafeBufferPointer<UInt8>.Index
+    ) throws -> Double? {
+        return try parseBareNumber(source: source, index: &index, end: end, parse: numberFormatter.utf8ToDouble)
+    }
+    
+    private func parseBareDecimal(
+    source: UnsafeBufferPointer<UInt8>,
+    index: inout UnsafeBufferPointer<UInt8>.Index,
+    end: UnsafeBufferPointer<UInt8>.Index
+    ) throws -> Decimal? {
+        return try parseBareNumber(source: source, index: &index, end: end, parse: numberFormatter.utf8ToDecimal)
+    }
+    
+    private func parseBareNumber<T: ExpressibleByFloatLiteral>(
 		source: UnsafeBufferPointer<UInt8>,
 		index: inout UnsafeBufferPointer<UInt8>.Index,
-		end: UnsafeBufferPointer<UInt8>.Index
-		) throws -> Double? {
+		end: UnsafeBufferPointer<UInt8>.Index,
+        parse: (UnsafeBufferPointer<UInt8>, UnsafeBufferPointer<UInt8>.Index, UnsafeBufferPointer<UInt8>.Index) -> T?
+		) throws -> T? {
 		// RFC 7159 defines the grammar for JSON numbers as:
 		// number = [ minus ] int [ frac ] [ exp ]
 		if index == end {
@@ -472,7 +490,6 @@ internal struct JSONScanner {
 		if c == asciiBackslash {
 			return nil
 		}
-		
 		// Optional leading minus sign
 		if c == asciiMinus { // -
 			source.formIndex(after: &index)
@@ -514,7 +531,7 @@ internal struct JSONScanner {
 			while c >= asciiZero && c <= asciiNine {
 				source.formIndex(after: &index)
 				if index == end {
-					if let d = numberFormatter.utf8ToDouble(bytes: source, start: start, end: index) {
+					if let d = parse(source, start, index) {
 						return d
 					} else {
 						throw JSONDecodingError.invalidUTF8
@@ -543,7 +560,7 @@ internal struct JSONScanner {
 				while c >= asciiZero && c <= asciiNine {
 					source.formIndex(after: &index)
 					if index == end {
-						if let d = numberFormatter.utf8ToDouble(bytes: source, start: start, end: index) {
+						if let d = parse(source, start, index) {
 							return d
 						} else {
 							throw JSONDecodingError.invalidUTF8
@@ -589,7 +606,7 @@ internal struct JSONScanner {
 				while c >= asciiZero && c <= asciiNine {
 					source.formIndex(after: &index)
 					if index == end {
-						if let d = numberFormatter.utf8ToDouble(bytes: source, start: start, end: index) {
+						if let d = parse(source, start, index) {
 							return d
 						} else {
 							throw JSONDecodingError.invalidUTF8
@@ -605,7 +622,7 @@ internal struct JSONScanner {
 				throw JSONDecodingError.malformedNumber
 			}
 		}
-		if let d = numberFormatter.utf8ToDouble(bytes: source, start: start, end: index) {
+		if let d = parse(source, start, index) {
 			return d
 		} else {
 			throw JSONDecodingError.invalidUTF8
@@ -902,6 +919,68 @@ internal struct JSONScanner {
 		throw JSONDecodingError.malformedNumber
 	}
 	
+    internal mutating func nextDecimal() throws -> Decimal {
+        skipWhitespace()
+        guard hasMoreContent else {
+            throw JSONDecodingError.truncated
+        }
+        let c = currentByte
+        if c == asciiDoubleQuote { // "
+            let start = index
+            advance()
+            if let d = try parseBareDecimal(source: source,
+                                           index: &index,
+                                           end: source.endIndex) {
+                guard hasMoreContent else {
+                    throw JSONDecodingError.truncated
+                }
+                if currentByte != asciiDoubleQuote {
+                    throw JSONDecodingError.malformedNumber
+                }
+                advance()
+                return d
+            } else {
+                // Slow Path: parseBareDouble returned nil: It might be
+                // a valid float, but had something that
+                // parseBareDouble cannot directly handle.  So we reset,
+                // try a full string parse, then examine the result:
+                index = start
+                let s = try nextQuotedString()
+                switch s {
+                case "NaN": return Decimal.nan
+                case "Inf": return Decimal.nan
+                case "-Inf": return -Decimal.nan
+                case "Infinity": return Decimal.nan
+                case "-Infinity": return -Decimal.nan
+                default:
+                    let raw = s.data(using: String.Encoding.utf8)!
+                    let n = try raw.withUnsafeBytes { rawPointer -> Decimal? in
+                        let buffer = rawPointer.bindMemory(to: UInt8.self)
+                        var index = buffer.startIndex
+                        let end = buffer.endIndex
+                        if let d = try parseBareDecimal(source: buffer,
+                                                       index: &index,
+                                                       end: end) {
+                            if index == end {
+                                return d
+                            }
+                        }
+                        return nil
+                    }
+                    if let n = n {
+                        return n
+                    }
+                }
+            }
+        } else {
+            if let d = try parseBareDecimal(source: source,
+                                           index: &index,
+                                           end: source.endIndex) {
+                return d
+            }
+        }
+        throw JSONDecodingError.malformedNumber
+    }
 	/// Return the contents of the following quoted string,
 	/// or throw an error if the next token is not a string.
 	internal mutating func nextQuotedString() throws -> String {
@@ -1052,7 +1131,7 @@ internal struct JSONScanner {
 		advance()
 		return result
 	}
-	
+    
 //	/// Returns pointer/count spanning the UTF8 bytes of the next regular key.
 //	mutating func nextKeyFromCamelCase() throws -> String {
 //		skipWhitespace()

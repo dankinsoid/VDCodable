@@ -470,7 +470,7 @@ fileprivate final class _SingleContainer<Boxer: EncodingBoxer>: SingleValueEncod
     }
     
     func encode<T: Encodable>(_ value: T) throws {
-        try storage.value = try boxer.encode(value: value)
+        storage.value = try boxer.encode(value: value)
     }
     
 }

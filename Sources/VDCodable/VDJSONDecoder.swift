@@ -130,6 +130,11 @@ fileprivate struct Unboxer: DecodingUnboxer {
     
 	@inline(__always)
 	func decode(_ type: Double.Type) throws -> Double {
+        switch input {
+            case .double(let dbl): return dbl
+            case .decimal(let dbl): return Double(dbl)
+            default: break
+        }
         return try decode(type) { try $0.nextDouble() }
 	}
     
@@ -138,7 +143,12 @@ fileprivate struct Unboxer: DecodingUnboxer {
     }
     
     func decodeDecimal() throws -> Decimal {
-        return try decode(Decimal.self) { try Decimal($0.nextDouble()) }
+        switch input {
+            case .double(let dbl): return Decimal(dbl)
+            case .decimal(let dbl): return dbl
+            default: break
+        }
+        return try decode(Decimal.self) { try $0.nextDecimal() }
     }
 	
 	@inline(__always)
@@ -198,7 +208,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
         if let result = value as? T {
             return result
         } else {
-            throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: codingPath, debugDescription: "Expected to decode \(type) but found \(value) instead."))
+            throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: codingPath, debugDescription: "Expected to decode \(type) but found \(String(describing: A.self)) instead."))
         }
     }
 	
