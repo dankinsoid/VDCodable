@@ -13,6 +13,7 @@ public protocol DecodingUnboxer: SingleValueDecodingContainer {
     init(input: Input, path: [CodingKey], other unboxer: Self)
     func decodeArray() throws -> [Input]
     func decodeDictionary() throws -> [String: Input]
+    func decodeFor(unknown key: String) throws -> Input?
 }
 
 extension DecodingUnboxer {
@@ -89,10 +90,7 @@ extension DecodingUnboxer {
         return try Float(decode(Double.self))
     }
     
-//    public func decode<T: Decodable>(_ type: T.Type) throws -> T {
-//       let decoder = VDDecoder(unboxer: Self.init(input: input, path: codingPath, other: self))
-//        return try T.init(from: decoder)
-//    }
+    public func decodeFor(unknown key: String) throws -> Input? { nil }
     
 }
 
@@ -156,119 +154,119 @@ fileprivate struct _KeyedDecodingContainer<Key: CodingKey, Unboxer: DecodingUnbo
     }
     
     func decodeNil(forKey key: Key) throws -> Bool {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return unboxer(js, key).decodeNil()
     }
     
     func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: String.Type, forKey key: Key) throws -> String {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: Double.Type, forKey key: Key) throws -> Double {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: Float.Type, forKey key: Key) throws -> Float {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: Int.Type, forKey key: Key) throws -> Int {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func decode<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         return try unboxer(js, key).decode(type)
     }
     
     func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: Key) throws -> KeyedDecodingContainer<NestedKey> where NestedKey: CodingKey {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         var path = codingPath
@@ -278,7 +276,7 @@ fileprivate struct _KeyedDecodingContainer<Key: CodingKey, Unboxer: DecodingUnbo
     }
     
     func nestedUnkeyedContainer(forKey key: Key) throws -> UnkeyedDecodingContainer {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         var path = codingPath
@@ -288,7 +286,7 @@ fileprivate struct _KeyedDecodingContainer<Key: CodingKey, Unboxer: DecodingUnbo
     
     func superDecoder() throws -> Decoder {
         let key = PlainCodingKey("super")
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         var path = codingPath
@@ -298,7 +296,7 @@ fileprivate struct _KeyedDecodingContainer<Key: CodingKey, Unboxer: DecodingUnbo
     }
     
     func superDecoder(forKey key: Key) throws -> Decoder {
-        guard let js = input[key.stringValue] else {
+        guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key.stringValue) else {
             throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
         }
         var path = codingPath

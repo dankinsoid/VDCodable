@@ -30,6 +30,21 @@ public protocol EncodingBoxer {
     func encode(_ value: UInt32) throws -> Output
     func encode(_ value: UInt64) throws -> Output
     func encode<T: Encodable>(value: T) throws -> Output
+    func encodeIfPresent(_ value: Bool?) throws -> Output?
+    func encodeIfPresent(_ value: String?) throws -> Output?
+    func encodeIfPresent(_ value: Double?) throws -> Output?
+    func encodeIfPresent(_ value: Float?) throws -> Output?
+    func encodeIfPresent(_ value: Int?) throws -> Output?
+    func encodeIfPresent(_ value: Int8?) throws -> Output?
+    func encodeIfPresent(_ value: Int16?) throws -> Output?
+    func encodeIfPresent(_ value: Int32?) throws -> Output?
+    func encodeIfPresent(_ value: Int64?) throws -> Output?
+    func encodeIfPresent(_ value: UInt?) throws -> Output?
+    func encodeIfPresent(_ value: UInt8?) throws -> Output?
+    func encodeIfPresent(_ value: UInt16?) throws -> Output?
+    func encodeIfPresent(_ value: UInt32?) throws -> Output?
+    func encodeIfPresent(_ value: UInt64?) throws -> Output?
+    func encodeIfPresent<T: Encodable>(value: T?) throws -> Output?
 }
 
 extension EncodingBoxer {
@@ -54,6 +69,27 @@ extension EncodingBoxer {
         return try encoder.encode(value)
     }
     
+    @inline(__always)
+    private func encodeAnyIfPresent<T>(_ value: T?, _ block: (T) throws -> Output) throws -> Output? {
+        guard let result = value else { return nil }
+        return try block(result)
+    }
+    
+    public func encodeIfPresent(_ value: Bool?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: String?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: Double?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: Float?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: Int?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: Int8?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: Int16?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: Int32?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: Int64?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: UInt?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: UInt8?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: UInt16?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: UInt32?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent(_ value: UInt64?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
+    public func encodeIfPresent<T: Encodable>(value: T?) throws -> Output? { try encodeAnyIfPresent(value, encode) }
 }
 
 public struct VDEncoder<Boxer: EncodingBoxer>: Encoder {
@@ -272,6 +308,27 @@ fileprivate struct _KeyedContainer<Key: CodingKey, Boxer: EncodingBoxer>: KeyedE
     func encode<T: Encodable>(_ value: T, forKey key: Key) throws {
         output.value[key.stringValue] = try .just(boxer(key).encode(value: value))
     }
+    
+    private func encodeNoNil<T>(_ value: T?, forKey key: Key, _ block: (T?) throws -> Boxer.Output?) throws {
+        guard let value = try block(value) else { return }
+        output.value[key.stringValue] = .just(value)
+    }
+    
+    func encodeIfPresent(_ value: Bool?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: String?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: Double?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: Float?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: Int?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: Int8?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: Int16?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: Int32?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: Int64?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: UInt?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: UInt8?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: UInt16?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: UInt32?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent(_ value: UInt64?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
+    func encodeIfPresent<T: Encodable>(_ value: T?, forKey key: Key) throws { try encodeNoNil(value, forKey: key, boxer(key).encodeIfPresent) }
     
     func nestedContainer<NestedKey: CodingKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
         let container = _KeyedContainer<NestedKey, Boxer>(boxer: boxer(key))
