@@ -47,7 +47,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
     let codingPath: [CodingKey]
 	let dateDecodingStrategy: VDJSONDecoder.DateDecodingStrategy
     let dataDecodingStrategy: VDJSONDecoder.DataDecodingStrategy
-	let keyDecodingStrategy: VDJSONDecoder.KeyDecodingStrategy
+	let keyDecodingStrategy: KeyDecodingStrategy
     let customDecoding: (([CodingKey], JSON) -> JSON)?
 	let tryDecodeFromQuotedString: Bool
     let input: JSON
@@ -62,7 +62,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
         customDecoding = unboxer.customDecoding
     }
     
-	init(json: JSON, dateDecodingStrategy: VDJSONDecoder.DateDecodingStrategy, dataDecodingStrategy: VDJSONDecoder.DataDecodingStrategy, keyDecodingStrategy: VDJSONDecoder.KeyDecodingStrategy, tryDecodeFromQuotedString: Bool, customDecoding: (([CodingKey], JSON) -> JSON)?) {
+	init(json: JSON, dateDecodingStrategy: VDJSONDecoder.DateDecodingStrategy, dataDecodingStrategy: VDJSONDecoder.DataDecodingStrategy, keyDecodingStrategy: KeyDecodingStrategy, tryDecodeFromQuotedString: Bool, customDecoding: (([CodingKey], JSON) -> JSON)?) {
         self.dateDecodingStrategy = dateDecodingStrategy
         self.dataDecodingStrategy = dataDecodingStrategy
 		self.keyDecodingStrategy = keyDecodingStrategy
@@ -87,7 +87,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
             case .useDefaultKeys:
                 dictionary[key] = value
             case .convertFromSnakeCase:
-                dictionary[VDJSONDecoder.KeyDecodingStrategy.keyFromSnakeCase(key)] = value
+                dictionary[KeyDecodingStrategy.keyFromSnakeCase(key)] = value
             case .custom(let fun):
                 dictionary[fun(codingPath)] = value
             }

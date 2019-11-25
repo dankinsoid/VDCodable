@@ -12,14 +12,16 @@ open class URLQueryDecoder: CodableDecoder {
     public typealias Input = URL
     public var dateDecodingStrategy: DateCodingStrategy
     public var arrayDecodingStrategy: ArrayDecodingStrategy
+    public var keyDecodingStrategy: KeyDecodingStrategy
     
-    public init(dateDecodingStrategy: DateCodingStrategy = .unixTimeSeconds, arrayDecodingStrategy: ArrayDecodingStrategy = .commaSeparator) {
+    public init(keyDecodingStrategy: KeyDecodingStrategy = .useDefaultKeys, dateDecodingStrategy: DateCodingStrategy = .unixTimeSeconds, arrayDecodingStrategy: ArrayDecodingStrategy = .commaSeparator) {
+        self.keyDecodingStrategy = keyDecodingStrategy
         self.dateDecodingStrategy = dateDecodingStrategy
         self.arrayDecodingStrategy = arrayDecodingStrategy
     }
     
     public func decode<T: Decodable>(_ type: T.Type, from data: URL) throws -> T {
-        let unboxer = try Unboxer(data, dateDecodingStrategy: dateDecodingStrategy, arrayDecodingStrategy: arrayDecodingStrategy)
+        let unboxer = try Unboxer(data, keyDecodingStrategy: keyDecodingStrategy, dateDecodingStrategy: dateDecodingStrategy, arrayDecodingStrategy: arrayDecodingStrategy)
         return try T(from: VDDecoder(unboxer: unboxer))
     }
 
@@ -44,6 +46,7 @@ open class URLQueryDecoder: CodableDecoder {
 fileprivate struct Unboxer: DecodingUnboxer {
     let input: QueryValue
     let codingPath: [CodingKey]
+    let keyDecodingStrategy: KeyDecodingStrategy
     let dateDecodingStrategy: URLQueryDecoder.DateCodingStrategy
     let arrayDecodingStrategy: URLQueryDecoder.ArrayDecodingStrategy
     
@@ -51,14 +54,15 @@ fileprivate struct Unboxer: DecodingUnboxer {
         return false
     }
     
-    init(_ input: QueryValue, dateDecodingStrategy: URLQueryDecoder.DateCodingStrategy, arrayDecodingStrategy: URLQueryDecoder.ArrayDecodingStrategy) throws {
+    init(_ input: QueryValue, keyDecodingStrategy: KeyDecodingStrategy, dateDecodingStrategy: URLQueryDecoder.DateCodingStrategy, arrayDecodingStrategy: URLQueryDecoder.ArrayDecodingStrategy) throws {
         self.input = input
         self.codingPath = []
+        self.keyDecodingStrategy = keyDecodingStrategy
         self.dateDecodingStrategy = dateDecodingStrategy
         self.arrayDecodingStrategy = arrayDecodingStrategy
     }
     
-    init(_ url: URL, dateDecodingStrategy: URLQueryDecoder.DateCodingStrategy, arrayDecodingStrategy: URLQueryDecoder.ArrayDecodingStrategy) throws {
+    init(_ url: URL, keyDecodingStrategy: KeyDecodingStrategy, dateDecodingStrategy: URLQueryDecoder.DateCodingStrategy, arrayDecodingStrategy: URLQueryDecoder.ArrayDecodingStrategy) throws {
         let components = try URLComponents(url: url, resolvingAgainstBaseURL: false)~!
         let items = components.queryItems ?? []
         let query: QueryValue
@@ -67,12 +71,13 @@ fileprivate struct Unboxer: DecodingUnboxer {
         } else {
             query = .keyed(items.map { (QueryValue.separateKey($0.name), $0.value ?? "") })
         }
-        self = try Unboxer(query, dateDecodingStrategy: dateDecodingStrategy, arrayDecodingStrategy: arrayDecodingStrategy)
+        self = try Unboxer(query, keyDecodingStrategy: keyDecodingStrategy, dateDecodingStrategy: dateDecodingStrategy, arrayDecodingStrategy: arrayDecodingStrategy)
     }
     
     init(input: QueryValue, path: [CodingKey], other unboxer: Unboxer) {
         self.input = input
         self.codingPath = path
+        keyDecodingStrategy = unboxer.keyDecodingStrategy
         dateDecodingStrategy = unboxer.dateDecodingStrategy
         arrayDecodingStrategy = unboxer.arrayDecodingStrategy
     }
@@ -108,10 +113,19 @@ fileprivate struct Unboxer: DecodingUnboxer {
         var result: [String: QueryValue] = [:]
         var i = 0
         for (keys, value) in array {
-            guard var first = keys.first else { throw QueryValue.Errors.unknown }
-            if first.isEmpty {
-                first = "\(i)"
+            guard var _first = keys.first else { throw QueryValue.Errors.unknown }
+            if _first.isEmpty {
+                _first = "\(i)"
                 i += 1
+            }
+            let first: String
+            switch keyDecodingStrategy {
+            case .useDefaultKeys:
+                first = _first
+            case .convertFromSnakeCase:
+                first = KeyDecodingStrategy.keyFromSnakeCase(_first)
+            case .custom(let block):
+                first = block(codingPath + [PlainCodingKey(_first)])
             }
             let new = (Array(keys.dropFirst()), value)
             if let query = result[first] {

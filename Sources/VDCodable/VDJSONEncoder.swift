@@ -44,14 +44,14 @@ fileprivate struct Boxer: EncodingBoxer {
     let codingPath: [CodingKey]
     let dateEncodingStrategy: VDJSONEncoder.DateEncodingStrategy
     let dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy
-    let keyEncodingStrategy: VDJSONEncoder.KeyEncodingStrategy
+    let keyEncodingStrategy: KeyEncodingStrategy
     let customEncoding: (([CodingKey], Data) throws -> Data)?
     let maximumFractionLength: Int32?
     private var encoder: ProtobufJSONEncoder {
         return ProtobufJSONEncoder(maxFractionDigits: maximumFractionLength)
     }
     
-    init(dateEncodingStrategy: VDJSONEncoder.DateEncodingStrategy, keyEncodingStrategy: VDJSONEncoder.KeyEncodingStrategy, dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy, maximumFractionLength: Int32?, customEncoding: (([CodingKey], Data) throws -> Data)?) {
+    init(dateEncodingStrategy: VDJSONEncoder.DateEncodingStrategy, keyEncodingStrategy: KeyEncodingStrategy, dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy, maximumFractionLength: Int32?, customEncoding: (([CodingKey], Data) throws -> Data)?) {
         self.dateEncodingStrategy = dateEncodingStrategy
         self.dataEncodingStrategy = dataEncodingStrategy
         self.keyEncodingStrategy = keyEncodingStrategy
@@ -136,7 +136,7 @@ fileprivate struct Boxer: EncodingBoxer {
         case .useDefaultKeys:
             return string
         case .convertToSnakeCase:
-            return VDJSONEncoder.KeyEncodingStrategy.keyToSnakeCase(string)
+            return KeyEncodingStrategy.keyToSnakeCase(string)
         case .custom(let block):
             return block(codingPath)
         }

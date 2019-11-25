@@ -10,14 +10,16 @@ import UnwrapOperator
 
 open class URLQueryEncoder: CodableEncoder {
     public typealias Output = [URLQueryItem]
-    private let dateEncodingStrategy: DateEncodingStrategy
-    let arrayEncodingStrategy: ArrayEncodingStrategy
-    let nestedEncodingStrategy: DictionaryEncodingStrategy
+    public let dateEncodingStrategy: DateEncodingStrategy
+    public var arrayEncodingStrategy: ArrayEncodingStrategy
+    public var nestedEncodingStrategy: DictionaryEncodingStrategy
+    public var keyEncodingStrategy: KeyEncodingStrategy
     
-    public init(arrayEncodingStrategy: ArrayEncodingStrategy = .commaSeparator, nestedEncodingStrategy: DictionaryEncodingStrategy = .point) {
+    public init(keyEncodingStrategy: KeyEncodingStrategy = .useDefaultKeys, arrayEncodingStrategy: ArrayEncodingStrategy = .commaSeparator, nestedEncodingStrategy: DictionaryEncodingStrategy = .point) {
         self.dateEncodingStrategy = .unixTimeSeconds
         self.arrayEncodingStrategy = arrayEncodingStrategy
         self.nestedEncodingStrategy = nestedEncodingStrategy
+        self.keyEncodingStrategy = keyEncodingStrategy
     }
     
     open func encode<T: Encodable>(_ value: T, for baseURL: URL) throws -> URL {
@@ -31,7 +33,7 @@ open class URLQueryEncoder: CodableEncoder {
     }
     
     open func encode<T: Encodable>(_ value: T) throws -> [URLQueryItem] {
-        let boxer = Boxer(dateEncodingStrategy: dateEncodingStrategy, arrayEncodingStrategy: arrayEncodingStrategy, nestedEncodingStrategy: nestedEncodingStrategy)
+        let boxer = Boxer(keyEncodingStrategy: keyEncodingStrategy, dateEncodingStrategy: dateEncodingStrategy, arrayEncodingStrategy: arrayEncodingStrategy, nestedEncodingStrategy: nestedEncodingStrategy)
         var encoder = VDEncoder(boxer: boxer)
         let query = try encoder.encode(value)
         return try boxer.getQuery(from: query)
@@ -74,9 +76,11 @@ fileprivate struct Boxer: EncodingBoxer {
     let dateEncodingStrategy: URLQueryEncoder.DateEncodingStrategy
     let arrayEncodingStrategy: URLQueryEncoder.ArrayEncodingStrategy
     let nestedEncodingStrategy: URLQueryEncoder.DictionaryEncodingStrategy
+    let keyEncodingStrategy: KeyEncodingStrategy
     
-    init(dateEncodingStrategy: URLQueryEncoder.DateEncodingStrategy, arrayEncodingStrategy: URLQueryEncoder.ArrayEncodingStrategy, nestedEncodingStrategy: URLQueryEncoder.DictionaryEncodingStrategy) {
+    init(keyEncodingStrategy: KeyEncodingStrategy, dateEncodingStrategy: URLQueryEncoder.DateEncodingStrategy, arrayEncodingStrategy: URLQueryEncoder.ArrayEncodingStrategy, nestedEncodingStrategy: URLQueryEncoder.DictionaryEncodingStrategy) {
         self.codingPath = []
+        self.keyEncodingStrategy = keyEncodingStrategy
         self.dateEncodingStrategy = dateEncodingStrategy
         self.arrayEncodingStrategy = arrayEncodingStrategy
         self.nestedEncodingStrategy = nestedEncodingStrategy
@@ -84,6 +88,7 @@ fileprivate struct Boxer: EncodingBoxer {
     
     init(path: [CodingKey], other boxer: Boxer) {
         codingPath = path
+        keyEncodingStrategy = boxer.keyEncodingStrategy
         dateEncodingStrategy = boxer.dateEncodingStrategy
         arrayEncodingStrategy = boxer.arrayEncodingStrategy
         nestedEncodingStrategy = boxer.nestedEncodingStrategy
@@ -139,6 +144,15 @@ fileprivate struct Boxer: EncodingBoxer {
             var key = key
             if emptyKeys, Int(key) != nil {
                 key = ""
+            } else {
+                switch keyEncodingStrategy {
+                case .useDefaultKeys:
+                    break
+                case .convertToSnakeCase:
+                    key = KeyEncodingStrategy.keyToSnakeCase(key)
+                case .custom(let block):
+                    key = block(codingPath + [PlainCodingKey(key)])
+                }
             }
             switch query {
             case .single(let value):
