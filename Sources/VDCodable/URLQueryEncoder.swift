@@ -39,6 +39,11 @@ open class URLQueryEncoder: CodableEncoder {
         return try boxer.getQuery(from: query)
     }
     
+    open func encodePath<T: Encodable>(_ value: T) throws -> String {
+        let items = try encodeParameters(value)
+        return items.map { $0.key + QueryValue.setter + $0.value }.joined(separator: QueryValue.separator)
+    }
+    
     open func encodeParameters<T: Encodable>(_ value: T) throws -> [String: String] {
         let items = try encode(value)
         var result: [String: String] = [:]
