@@ -153,8 +153,8 @@ fileprivate struct Boxer: EncodingBoxer {
                 switch keyEncodingStrategy {
                 case .useDefaultKeys:
                     break
-                case .convertToSnakeCase:
-                    key = KeyEncodingStrategy.keyToSnakeCase(key)
+                case .convertToSnakeCase(let separator):
+                    key = KeyEncodingStrategy.keyToSnakeCase(key, separator: separator)
                 case .custom(let block):
                     key = block(codingPath + [PlainCodingKey(key)])
                 }

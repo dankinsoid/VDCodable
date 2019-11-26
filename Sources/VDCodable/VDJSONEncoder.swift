@@ -16,7 +16,7 @@ open class VDJSONEncoder {
     open var maximumFractionLength: Int32?
     open var customEncoding: (([CodingKey], Data) throws -> Data)?
     
-    public init(dateEncodingStrategy: DateEncodingStrategy = .deferredFromDate, dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy = .deferredFromData, keyEncodingStrategy: KeyEncodingStrategy = .useDefaultKeys, maximumFractionLength: Int32? = nil, customEncoding: (([CodingKey], Data) throws -> Data)? = nil) {
+    public init(dateEncodingStrategy: DateEncodingStrategy = .deferredToDate, dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy = .deferredToData, keyEncodingStrategy: KeyEncodingStrategy = .useDefaultKeys, maximumFractionLength: Int32? = nil, customEncoding: (([CodingKey], Data) throws -> Data)? = nil) {
         self.dateEncodingStrategy = dateEncodingStrategy
         self.dataEncodingStrategy = dataEncodingStrategy
         self.keyEncodingStrategy = keyEncodingStrategy
@@ -135,8 +135,8 @@ fileprivate struct Boxer: EncodingBoxer {
         switch keyEncodingStrategy {
         case .useDefaultKeys:
             return string
-        case .convertToSnakeCase:
-            return KeyEncodingStrategy.keyToSnakeCase(string)
+        case .convertToSnakeCase(let separator):
+            return KeyEncodingStrategy.keyToSnakeCase(string, separator: separator)
         case .custom(let block):
             return block(codingPath)
         }
@@ -144,7 +144,7 @@ fileprivate struct Boxer: EncodingBoxer {
     
     func encode(date: Date) throws -> Data {
         switch dateEncodingStrategy {
-        case .deferredFromDate:
+        case .deferredToDate:
             var encoder = VDEncoder(boxer: self)
             return try encoder.encode(date)
         case .secondsSince1970:
@@ -168,7 +168,7 @@ fileprivate struct Boxer: EncodingBoxer {
     
     func encode(data: Data) throws -> Data {
         switch dataEncodingStrategy {
-        case .deferredFromData:
+        case .deferredToData:
             var encoder = VDEncoder(boxer: self)
             return try encoder.encode(data)
         case .base64:

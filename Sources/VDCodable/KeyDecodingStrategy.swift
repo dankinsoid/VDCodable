@@ -10,6 +10,7 @@ import Foundation
 
 /// The strategy to use for automatically changing the value of keys before decoding.
 public enum KeyDecodingStrategy {
+    public static let unserline = CharacterSet(charactersIn: "_")
     /// Use the keys specified by each type. This is the default strategy.
     case useDefaultKeys
     
@@ -24,21 +25,25 @@ public enum KeyDecodingStrategy {
     /// For example, `one_two_three` becomes `oneTwoThree`. `_one_two_three_` becomes `_oneTwoThree_`.
     ///
     /// - Note: Using a key decoding strategy has a nominal performance cost, as each string key has to be inspected for the `_` character.
-    case convertFromSnakeCase
+    case convertFromSnakeCase(separators: CharacterSet)
     
     /// Provide a custom conversion from the key in the encoded JSON to the keys specified by the decoded types.
     /// The full path to the current decoding position is provided for context (in case you need to locate this key within the payload). The returned key is used in place of the last component in the coding path before decoding.
     /// If the result of the conversion is a duplicate key, then only one value will be present in the container for the type to decode from.
     case custom((_ path: [CodingKey]) -> String)
     
-    public static func keyFromSnakeCase(_ stringKey: String) -> String {
+    public static var convertFromSnakeCase: KeyDecodingStrategy {
+        .convertFromSnakeCase(separators: unserline)
+    }
+    
+    public static func keyFromSnakeCase(_ stringKey: String, separators: CharacterSet) -> String {
         guard !stringKey.isEmpty else { return stringKey }
         var result = ""
         var needUppercase = false
         var i = 0
         let endIndex = stringKey.count - 1
         for char in stringKey {
-            if char == "_", i > 0, i < endIndex {
+            if separators.contains(char), i > 0, i < endIndex {
                 needUppercase = true
             } else if needUppercase {
                 result += String(char).uppercased()
@@ -49,6 +54,17 @@ public enum KeyDecodingStrategy {
             i += 1
         }
         return result
+    }
+    
+}
+
+extension CharacterSet {
+    
+    func contains(_ character: Character) -> Bool {
+        for scalar in character.unicodeScalars {
+            if !contains(scalar) { return false }
+        }
+        return true
     }
     
 }

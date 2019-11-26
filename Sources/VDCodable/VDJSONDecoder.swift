@@ -86,8 +86,8 @@ fileprivate struct Unboxer: DecodingUnboxer {
             switch keyDecodingStrategy {
             case .useDefaultKeys:
                 dictionary[key] = value
-            case .convertFromSnakeCase:
-                dictionary[KeyDecodingStrategy.keyFromSnakeCase(key)] = value
+            case .convertFromSnakeCase(let set):
+                dictionary[KeyDecodingStrategy.keyFromSnakeCase(key, separators: set)] = value
             case .custom(let fun):
                 dictionary[fun(codingPath)] = value
             }

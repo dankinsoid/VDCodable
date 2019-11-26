@@ -10,6 +10,8 @@ import Foundation
 
 /// The strategy to use for automatically changing the value of keys before decoding.
 public enum KeyEncodingStrategy {
+    public static let underline = "_"
+    
     /// Use the keys specified by each type. This is the default strategy.
     case useDefaultKeys
     
@@ -24,14 +26,18 @@ public enum KeyEncodingStrategy {
     /// For example, `one_two_three` becomes `oneTwoThree`. `_one_two_three_` becomes `_oneTwoThree_`.
     ///
     /// - Note: Using a key decoding strategy has a nominal performance cost, as each string key has to be inspected for the `_` character.
-    case convertToSnakeCase
+    case convertToSnakeCase(separator: String)
     
     /// Provide a custom conversion from the key in the encoded JSON to the keys specified by the decoded types.
     /// The full path to the current decoding position is provided for context (in case you need to locate this key within the payload). The returned key is used in place of the last component in the coding path before decoding.
     /// If the result of the conversion is a duplicate key, then only one value will be present in the container for the type to decode from.
     case custom((_ path: [CodingKey]) -> String)
     
-    public static func keyToSnakeCase(_ stringKey: String) -> String {
+    public static var convertToSnakeCase: KeyEncodingStrategy {
+        return .convertToSnakeCase(separator: underline)
+    }
+    
+    public static func keyToSnakeCase(_ stringKey: String, separator: String) -> String {
         guard !stringKey.isEmpty else { return stringKey }
         
         var words : [Range<String.Index>] = []
@@ -76,7 +82,7 @@ public enum KeyEncodingStrategy {
         words.append(wordStart..<searchRange.upperBound)
         let result = words.map({ (range) in
             return stringKey[range].lowercased()
-        }).joined(separator: "_")
+        }).joined(separator: separator)
         return result
     }
     

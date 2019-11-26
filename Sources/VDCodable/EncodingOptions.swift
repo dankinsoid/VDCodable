@@ -12,7 +12,7 @@ extension VDJSONEncoder {
     /// The strategy to use for decoding `Date` values.
     public enum DateEncodingStrategy {
         /// Defer to `Date` for encoding. This is the default strategy.
-        case deferredFromDate
+        case deferredToDate
         
         /// Encode the `Date` as a UNIX timestamp from a JSON number.
         case secondsSince1970
@@ -36,7 +36,7 @@ extension VDJSONEncoder {
     /// The strategy to use for decoding `Date` values.
     public enum DataEncodingStrategy {
         /// Defer to `Data` for encoding. This is the default strategy.
-        case deferredFromData
+        case deferredToData
         case base64
         /// Encode the `Data` as a custom value encoded by the given closure.
         case custom((_ encoder: Encoder) throws -> Data)

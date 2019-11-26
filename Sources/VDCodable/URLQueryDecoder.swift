@@ -122,8 +122,8 @@ fileprivate struct Unboxer: DecodingUnboxer {
             switch keyDecodingStrategy {
             case .useDefaultKeys:
                 first = _first
-            case .convertFromSnakeCase:
-                first = KeyDecodingStrategy.keyFromSnakeCase(_first)
+            case .convertFromSnakeCase(let set):
+                first = KeyDecodingStrategy.keyFromSnakeCase(_first, separators: set)
             case .custom(let block):
                 first = block(codingPath + [PlainCodingKey(_first)])
             }
