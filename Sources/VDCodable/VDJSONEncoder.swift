@@ -115,7 +115,7 @@ fileprivate struct Boxer: EncodingBoxer {
     }
     func encode(_ value: Int) throws -> Data {
         var encoder = self.encoder
-        encoder.putInt64(value: Int64(value))
+        encoder.appendInt(value: Int64(value))
         return try encodeAny(encoder.dataResult)
     }
     
