@@ -38,9 +38,7 @@ open class URLQueryEncoder: CodableEncoder {
         if nestedEncodingStrategy == .json {
             let json = try VDJSONEncoder().encodeToJSON(value)
             if let object = json.object {
-                let dict = try object.mapValues {
-                    try String(data: $0.data, encoding: .utf8)~!
-                }
+                let dict = object.mapValues { $0.string ?? $0.utf8String }
                 let query = try encoder.encode(dict)
                 return try boxer.getQuery(from: query)
             }
