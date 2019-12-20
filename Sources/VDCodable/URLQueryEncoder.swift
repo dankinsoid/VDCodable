@@ -35,6 +35,16 @@ open class URLQueryEncoder: CodableEncoder {
     open func encode<T: Encodable>(_ value: T) throws -> [URLQueryItem] {
         let boxer = Boxer(keyEncodingStrategy: keyEncodingStrategy, dateEncodingStrategy: dateEncodingStrategy, arrayEncodingStrategy: arrayEncodingStrategy, nestedEncodingStrategy: nestedEncodingStrategy)
         var encoder = VDEncoder(boxer: boxer)
+        if nestedEncodingStrategy == .json {
+            let json = try VDJSONEncoder().encodeToJSON(value)
+            if let object = json.object {
+                let dict = try object.mapValues {
+                    try String(data: $0.data, encoding: .utf8)~!
+                }
+                let query = try encoder.encode(dict)
+                return try boxer.getQuery(from: query)
+            }
+        }
         let query = try encoder.encode(value)
         return try boxer.getQuery(from: query)
     }
@@ -61,7 +71,7 @@ open class URLQueryEncoder: CodableEncoder {
     }
     
     public enum DictionaryEncodingStrategy {
-        case squareBrackets, point
+        case squareBrackets, point, json
     }
     
     public enum DateEncodingStrategy {
@@ -123,7 +133,7 @@ fileprivate struct Boxer: EncodingBoxer {
                     key += "[" + chain + "]"
                 }
                 name = key
-            case .point:
+            case .point, .json:
                 var result = ""
                 let point = String(QueryValue.point)
                 for key in $0.0 {
