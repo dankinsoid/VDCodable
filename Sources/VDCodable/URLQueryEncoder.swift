@@ -39,7 +39,7 @@ open class URLQueryEncoder: CodableEncoder {
         if nestedEncodingStrategy == .json {
             let encoder = VDJSONEncoder(dateEncodingStrategy: dateEncodingStrategy.jsonStrategy, keyEncodingStrategy: keyEncodingStrategy)
             let json = try encoder.encodeToJSON(value)
-            query = try self.query(from: json, boxer: boxer)
+            query = try self.query(from: json, boxer: boxer, root: true)
         } else {
             query = try encoder.encode(value)
         }
