@@ -35,15 +35,14 @@ open class URLQueryEncoder: CodableEncoder {
     open func encode<T: Encodable>(_ value: T) throws -> [URLQueryItem] {
         let boxer = Boxer(keyEncodingStrategy: keyEncodingStrategy, dateEncodingStrategy: dateEncodingStrategy, arrayEncodingStrategy: arrayEncodingStrategy, nestedEncodingStrategy: nestedEncodingStrategy)
         var encoder = VDEncoder(boxer: boxer)
+        let query: QueryValue
         if nestedEncodingStrategy == .json {
-            let json = try VDJSONEncoder().encodeToJSON(value)
-            if let object = json.object {
-                let dict = object.mapValues { $0.string ?? $0.utf8String }
-                let query = try encoder.encode(dict)
-                return try boxer.getQuery(from: query)
-            }
+            let encoder = VDJSONEncoder(dateEncodingStrategy: dateEncodingStrategy.jsonStrategy, keyEncodingStrategy: keyEncodingStrategy)
+            let json = try encoder.encodeToJSON(value)
+            query = try self.query(from: json, boxer: boxer)
+        } else {
+            query = try encoder.encode(value)
         }
-        let query = try encoder.encode(value)
         return try boxer.getQuery(from: query)
     }
     
@@ -59,6 +58,27 @@ open class URLQueryEncoder: CodableEncoder {
             result[item.name] = item.value ?? result[item.name]
         }
         return result
+    }
+    
+    private func query(from json: JSON, boxer: Boxer) throws -> QueryValue {
+        switch json {
+        case .bool(let value):
+            return try boxer.encode(value)
+        case .int(let value):
+            return try boxer.encode(value)
+        case .decimal(let value):
+            return try boxer.encode(value: value)
+        case .double(let value):
+            return try boxer.encode(value)
+        case .string(let value):
+            return try boxer.encode(value)
+        case .array(let array):
+            return try boxer.encode(array.map({ try query(from: $0, boxer: boxer) }))
+        case .object(let dict):
+            return try boxer.encode(dict.mapValues({ .single($0.string ?? $0.utf8String) }))
+        case .null:
+            return try boxer.encodeNil()
+        }
     }
     
     public enum ArrayEncodingStrategy {
@@ -77,10 +97,31 @@ open class URLQueryEncoder: CodableEncoder {
         case unixTimeMilliseconds
         case stringFormat(String)
         case customFormat(DateFormatter)
-        case custom(([CodingKey], String) throws -> Date)
+        case custom((_ encoder: Encoder) throws -> String)
         case iso8601
     }
     
+}
+
+extension URLQueryEncoder.DateEncodingStrategy {
+    var jsonStrategy: VDJSONEncoder.DateEncodingStrategy {
+        switch self {
+        case .unixTimeSeconds:
+            return .secondsSince1970
+        case .unixTimeMilliseconds:
+            return .millisecondsSince1970
+        case .stringFormat(let format):
+            return .stringFormat(format)
+        case .customFormat(let formatter):
+            return .formatted(formatter)
+        case .custom(let block):
+            return .custom { encoder -> JSON in
+                return try .string(block(encoder))
+            }
+        case .iso8601:
+            return .iso8601
+        }
+    }
 }
 
 fileprivate struct Boxer: EncodingBoxer {
@@ -206,4 +247,30 @@ fileprivate struct Boxer: EncodingBoxer {
         return .single("\(value)")
     }
     
+    func encode(date: Date) throws -> QueryValue {
+        switch dateEncodingStrategy {
+        case .unixTimeSeconds:
+            return try encode(date.timeIntervalSince1970)
+        case .unixTimeMilliseconds:
+            return try encode(date.timeIntervalSince1970 * 1000)
+        case .stringFormat(let format):
+            let formatter = DateFormatter()
+            formatter.dateFormat = format
+            return try encode(formatter.string(from: date))
+        case .customFormat(let formatter):
+            return try encode(formatter.string(from: date))
+        case .custom(let block):
+            return try .single(block(VDEncoder(boxer: self)))
+        case .iso8601:
+            return try encode(_iso8601Formatter.string(from: date))
+        }
+    }
+    
+    func encode<T: Encodable>(value: T) throws -> QueryValue {
+        if let date = value as? Date {
+            return try encode(date: date)
+        }
+        var encoder = VDEncoder(boxer: self)
+        return try encoder.encode(value)
+    }
 }
