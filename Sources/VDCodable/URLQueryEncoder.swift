@@ -60,7 +60,7 @@ open class URLQueryEncoder: CodableEncoder {
         return result
     }
     
-    private func query(from json: JSON, boxer: Boxer) throws -> QueryValue {
+    private func query(from json: JSON, boxer: Boxer, root: Bool) throws -> QueryValue {
         switch json {
         case .bool(let value):
             return try boxer.encode(value)
@@ -73,9 +73,13 @@ open class URLQueryEncoder: CodableEncoder {
         case .string(let value):
             return try boxer.encode(value)
         case .array(let array):
-            return try boxer.encode(array.map({ try query(from: $0, boxer: boxer) }))
+            return try boxer.encode(array.map({ try query(from: $0, boxer: boxer, root: false) }))
         case .object(let dict):
-            return try boxer.encode(dict.mapValues({ .single($0.string ?? $0.utf8String) }))
+            if root {
+                return try boxer.encode(dict.mapValues({ try query(from: $0, boxer: boxer, root: false) }))
+            } else {
+                return .single(json.string ?? json.utf8String)
+            }
         case .null:
             return try boxer.encodeNil()
         }
