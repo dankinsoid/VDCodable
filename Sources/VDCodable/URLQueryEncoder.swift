@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import UnwrapOperator
 
 open class URLQueryEncoder: CodableEncoder {
     public typealias Output = [URLQueryItem]

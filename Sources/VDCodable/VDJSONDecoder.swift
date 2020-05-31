@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import UnwrapOperator
 
 open class VDJSONDecoder {
 	

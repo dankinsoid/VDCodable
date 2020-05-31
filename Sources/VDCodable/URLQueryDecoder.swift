@@ -1,12 +1,10 @@
 //
 //  URLQueryDecoder.swift
-//  UnwrapOperator
 //
 //  Created by Daniil on 11.08.2019.
 //
 
 import Foundation
-import UnwrapOperator
 
 open class URLQueryDecoder: CodableDecoder {
     public typealias Input = URL
