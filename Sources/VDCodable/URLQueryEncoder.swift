@@ -13,6 +13,7 @@ open class URLQueryEncoder: CodableEncoder {
     public var arrayEncodingStrategy: ArrayEncodingStrategy
     public var nestedEncodingStrategy: DictionaryEncodingStrategy
     public var keyEncodingStrategy: KeyEncodingStrategy
+    public var trimmingSquareBrackets = true
     
     public init(keyEncodingStrategy: KeyEncodingStrategy = .useDefaultKeys, arrayEncodingStrategy: ArrayEncodingStrategy = .commaSeparator, nestedEncodingStrategy: DictionaryEncodingStrategy = .point) {
         self.dateEncodingStrategy = .unixTimeSeconds
@@ -72,10 +73,14 @@ open class URLQueryEncoder: CodableEncoder {
         case .string(let value):
             return try boxer.encode(value)
         case .array(let array):
-            if root, array.contains(where: { $0.kind == .object || $0.kind == .array }) {
+            if root, !trimmingSquareBrackets {
                 return try boxer.encode(array.map({ try query(from: $0, boxer: boxer, root: false) }))
             } else {
-                return .single(json.string ?? json.utf8String)
+                var string = json.string ?? json.utf8String
+                if trimmingSquareBrackets {
+                    string = string.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+                }
+                return .single(string)
             }
         case .object(let dict):
             if root {
