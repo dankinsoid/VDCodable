@@ -72,7 +72,11 @@ open class URLQueryEncoder: CodableEncoder {
         case .string(let value):
             return try boxer.encode(value)
         case .array(let array):
-            return try boxer.encode(array.map({ try query(from: $0, boxer: boxer, root: false) }))
+            if root {
+                return try boxer.encode(array.map({ try query(from: $0, boxer: boxer, root: false) }))
+            } else {
+                return .single(json.string ?? json.utf8String)
+            }
         case .object(let dict):
             if root {
                 return try boxer.encode(dict.mapValues({ try query(from: $0, boxer: boxer, root: false) }))

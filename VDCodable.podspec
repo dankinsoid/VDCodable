@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
 s.name             = 'VDCodable'
-s.version          = '1.0.1'
+s.version          = '1.0.3'
 s.summary          = 'A short description of VDCodable.'
 
 s.description      = <<-DESC
