@@ -78,17 +78,26 @@ fileprivate struct Unboxer: DecodingUnboxer {
 	}
     
     func decodeArray() throws -> [JSON] {
-        try decode([JSON].self) {
-            let json = try JSON(from: &$0)~!
-            switch json {
-            case .array(let result):
-                return result
-            default:
-                if self.decodeOneObjectAsArray {
-                    return [json]
-                } else {
-                    throw DecodingError.typeMismatch([JSON].self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Expected to decode array but found \(json.kind) instead."))
-                }
+        switch input {
+        case .string:
+            return try decode([JSON].self) {
+                let json = try JSON(from: &$0)~!
+                return try self._decodeArray(json: json)
+            }
+        default:
+            return try _decodeArray(json: input)
+        }
+    }
+    
+    private func _decodeArray(json: JSON) throws -> [JSON] {
+        switch json {
+        case .array(let result):
+            return result
+        default:
+            if self.decodeOneObjectAsArray {
+                return [json]
+            } else {
+                throw DecodingError.typeMismatch([JSON].self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Expected to decode array but found \(json.kind) instead."))
             }
         }
     }
