@@ -14,23 +14,26 @@ open class VDJSONDecoder {
     open var dataDecodingStrategy: DataDecodingStrategy
 	open var keyDecodingStrategy: KeyDecodingStrategy
 	open var tryDecodeFromQuotedString: Bool
+    open var decodeOneObjectAsArray: Bool
     open var customDecoding: (([CodingKey], JSON) -> JSON)?
 	public let userInfo: [CodingUserInfoKey : Any] = [:]
 	
 	public init(dateDecodingStrategy: DateDecodingStrategy = .deferredToDate,
                 dataDecodingStrategy: DataDecodingStrategy = .deferredToData,
 				keyDecodingStrategy: KeyDecodingStrategy = .useDefaultKeys,
+                decodeOneObjectAsArray: Bool = true,
 				tryDecodeFromQuotedString: Bool = true, customDecoding: (([CodingKey], JSON) -> JSON)? = nil) {
         self.dateDecodingStrategy = dateDecodingStrategy
         self.dataDecodingStrategy = dataDecodingStrategy
 		self.keyDecodingStrategy = keyDecodingStrategy
 		self.tryDecodeFromQuotedString = tryDecodeFromQuotedString
+        self.decodeOneObjectAsArray = decodeOneObjectAsArray
         self.customDecoding = customDecoding
 	}
 	
     open func decode<D: Decodable>(_ type: D.Type, json: JSON) throws -> D {
         if type == JSON.self, let result = json as? D { return (customDecoding?([], json) as? D) ?? result }
-        let decoder = VDDecoder(unboxer: Unboxer(json: json, dateDecodingStrategy: dateDecodingStrategy, dataDecodingStrategy: dataDecodingStrategy, keyDecodingStrategy: keyDecodingStrategy, tryDecodeFromQuotedString: tryDecodeFromQuotedString, customDecoding: customDecoding))
+        let decoder = VDDecoder(unboxer: Unboxer(json: json, dateDecodingStrategy: dateDecodingStrategy, dataDecodingStrategy: dataDecodingStrategy, keyDecodingStrategy: keyDecodingStrategy, decodeOneObjectAsArray: decodeOneObjectAsArray, tryDecodeFromQuotedString: tryDecodeFromQuotedString, customDecoding: customDecoding))
         return try D.init(from: decoder)
     }
     
@@ -47,6 +50,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
 	let dateDecodingStrategy: VDJSONDecoder.DateDecodingStrategy
     let dataDecodingStrategy: VDJSONDecoder.DataDecodingStrategy
 	let keyDecodingStrategy: KeyDecodingStrategy
+    let decodeOneObjectAsArray: Bool
     let customDecoding: (([CodingKey], JSON) -> JSON)?
 	let tryDecodeFromQuotedString: Bool
     let input: JSON
@@ -58,21 +62,35 @@ fileprivate struct Unboxer: DecodingUnboxer {
         dataDecodingStrategy = unboxer.dataDecodingStrategy
         keyDecodingStrategy = unboxer.keyDecodingStrategy
         tryDecodeFromQuotedString = unboxer.tryDecodeFromQuotedString
+        decodeOneObjectAsArray = unboxer.decodeOneObjectAsArray
         customDecoding = unboxer.customDecoding
     }
     
-	init(json: JSON, dateDecodingStrategy: VDJSONDecoder.DateDecodingStrategy, dataDecodingStrategy: VDJSONDecoder.DataDecodingStrategy, keyDecodingStrategy: KeyDecodingStrategy, tryDecodeFromQuotedString: Bool, customDecoding: (([CodingKey], JSON) -> JSON)?) {
+	init(json: JSON, dateDecodingStrategy: VDJSONDecoder.DateDecodingStrategy, dataDecodingStrategy: VDJSONDecoder.DataDecodingStrategy, keyDecodingStrategy: KeyDecodingStrategy, decodeOneObjectAsArray: Bool, tryDecodeFromQuotedString: Bool, customDecoding: (([CodingKey], JSON) -> JSON)?) {
         self.dateDecodingStrategy = dateDecodingStrategy
         self.dataDecodingStrategy = dataDecodingStrategy
 		self.keyDecodingStrategy = keyDecodingStrategy
-		self.tryDecodeFromQuotedString = tryDecodeFromQuotedString
+        self.tryDecodeFromQuotedString = tryDecodeFromQuotedString
+		self.decodeOneObjectAsArray = decodeOneObjectAsArray
         self.customDecoding = customDecoding
         self.codingPath = []
         self.input = customDecoding?([], json) ?? json
 	}
     
     func decodeArray() throws -> [JSON] {
-        return try decode([JSON].self) { try JSON(from: &$0)~!.array~! }
+        try decode([JSON].self) {
+            let json = try JSON(from: &$0)~!
+            switch json {
+            case .array(let result):
+                return result
+            default:
+                if self.decodeOneObjectAsArray {
+                    return [json]
+                } else {
+                    throw DecodingError.typeMismatch([JSON].self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Expected to decode array but found \(json.kind) instead."))
+                }
+            }
+        }
     }
     
     func decodeDictionary() throws -> [String: JSON] {
