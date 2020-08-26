@@ -26,9 +26,21 @@ extension NSManagedDecodable {
 	
 	public init(from decoder: Decoder) throws {
 		self.init(entity: Self.entity(), insertInto: nil)
+		try update(from: decoder)
+	}
+	
+	public func update(from decoder: Decoder) throws {
 		try decode(from: decoder.container(keyedBy: PlainCodingKey.self), ignore: [], entity: entity)
 	}
 	
+	public func update<T: Encodable>(from value: T) throws {
+		try update(from: DictionaryDecoder().decoder(for: DictionaryEncoder().encode(value)))
+	}
+	
+	public func update(from value: [String: Any]) throws {
+		try update(from: DictionaryDecoder().decoder(for: value))
+	}
+		
 }
 
 extension NSManagedObject {

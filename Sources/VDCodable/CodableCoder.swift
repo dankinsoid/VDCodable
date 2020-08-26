@@ -9,16 +9,12 @@ import Foundation
 
 open class VDCoder<Input: Encodable, Output: Decodable>: CodableEncoder, CodableDecoder {
     
+		public init() {}
+	
     static func decode(_ value: Input) throws -> Output {
         if let result = value as? Output {
             return result
         }
-//        if let json = value as? JSON {
-//            return try VDJSONDecoder().decode(Output.self, from: json)
-//        }
-//        if Output.self == JSON.self {
-//            return try VDJSONEncoder().encodeJSON(value) as! Output
-//        }
         return try DictionaryDecoder().decode(Output.self, from: DictionaryEncoder().encode(value))
     }
     
