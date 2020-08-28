@@ -12,12 +12,8 @@ open class DictionaryDecoder: CodableDecoder {
     public init() {}
     
     open func decode<T: Decodable>(_ type: T.Type, from data: Any) throws -> T  {
-        try T(from: decoder(for: data))
+        try T(from: VDDecoder(unboxer: Unboxer(input: data)))
     }
-	
-		func decoder(for data: Any) -> Decoder {
-				VDDecoder(unboxer: Unboxer(input: data))
-		}
     
 }
 

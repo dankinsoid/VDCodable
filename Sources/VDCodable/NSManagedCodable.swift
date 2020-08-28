@@ -34,13 +34,9 @@ extension NSManagedDecodable {
 	}
 	
 	public func update<T: Encodable>(from value: T) throws {
-		try update(from: DictionaryDecoder().decoder(for: DictionaryEncoder().encode(value)))
+		try update(from:VDJSONDecoder().decoder(for: VDJSONEncoder().encodeToJSON(value)))
 	}
 	
-	public func update(from value: [String: Any]) throws {
-		try update(from: DictionaryDecoder().decoder(for: value))
-	}
-		
 }
 
 extension NSManagedObject {

@@ -33,8 +33,7 @@ open class VDJSONDecoder {
 	
 	open func decode<D: Decodable>(_ type: D.Type, json: JSON) throws -> D {
 			if type == JSON.self, let result = json as? D { return (customDecoding?([], json) as? D) ?? result }
-			let decoder = VDDecoder(unboxer: Unboxer(json: json, dateDecodingStrategy: dateDecodingStrategy, dataDecodingStrategy: dataDecodingStrategy, keyDecodingStrategy: keyDecodingStrategy, decodeOneObjectAsArray: decodeOneObjectAsArray, tryDecodeFromQuotedString: tryDecodeFromQuotedString, customDecoding: customDecoding))
-			return try D.init(from: decoder)
+			return try D.init(from: decoder(for: json))
 	}
     
 	open func decode<D: Decodable>(_ type: D.Type, from data: Data) throws -> D {
@@ -42,6 +41,9 @@ open class VDJSONDecoder {
 		return try decode(type, json: json)
 	}
 	
+	func decoder(for json: JSON) -> Decoder {
+		VDDecoder(unboxer: Unboxer(json: json, dateDecodingStrategy: dateDecodingStrategy, dataDecodingStrategy: dataDecodingStrategy, keyDecodingStrategy: keyDecodingStrategy, decodeOneObjectAsArray: decodeOneObjectAsArray, tryDecodeFromQuotedString: tryDecodeFromQuotedString, customDecoding: customDecoding))
+	}
 }
 
 fileprivate struct Unboxer: DecodingUnboxer {
