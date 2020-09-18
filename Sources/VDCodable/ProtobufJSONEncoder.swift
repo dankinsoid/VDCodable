@@ -229,10 +229,29 @@ internal struct ProtobufJSONEncoder {
     /// This handles Nan and infinite values by
     /// writing well-known string values.
     internal mutating func putDecimalValue(value: Decimal) {
-        let max = maxFractionDigits == nil ? Int32(value.fractionLength) : min(Int32(value.fractionLength), maxFractionDigits!)
-        let double = (value as NSDecimalNumber).doubleValue
-        putDoubleValue(value: double, max: max)
+			let (int, fraction) = string(decimal: value)
+			let max = maxFractionDigits == nil ? value.fractionLength : min(value.fractionLength, Int(maxFractionDigits!))
+			append(text: int)
+			guard !fraction.isEmpty || max > 0 else { return }
+			append(text: ".")
+			append(text: String(fraction.prefix(max)))
     }
+		
+		private func string(decimal: Decimal) -> (integer: String, fraction: String) {
+			let decimal = decimal < 0 ? -decimal : decimal
+			let int = decimal.int
+			let integer = "\(int)"
+			var fraction = ""
+			var frac = decimal - Decimal(int)
+			let max = Decimal(Int.max / 10)
+			while frac > 0, frac < max {
+				frac *= 10
+				let int = frac.int
+				fraction += "\(int)"
+				frac -= Decimal(abs(int))
+			}
+			return (integer, fraction)
+		}
 
     /// Append a UInt64 to the output (without quoting).
 	mutating func appendUInt(value: UInt64) {
@@ -395,3 +414,19 @@ internal struct ProtobufJSONEncoder {
     }
 }
 
+extension Decimal {
+	
+	fileprivate func rounded(by scale: Int, _ roundingMode: NSDecimalNumber.RoundingMode = .plain) -> Decimal {
+		var result = Decimal()
+		var current = self
+		NSDecimalRound(&result, &current, scale, roundingMode)
+		return result
+	}
+	
+	fileprivate var int: Int {
+		let value = self < 0 ? -self : self
+		let result = (value.rounded(by: 0, .down) as NSDecimalNumber).intValue
+		return self < 0 ? -result : result
+	}
+	
+}
