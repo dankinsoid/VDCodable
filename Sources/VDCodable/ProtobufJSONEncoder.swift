@@ -232,7 +232,7 @@ internal struct ProtobufJSONEncoder {
 			let (int, fraction) = string(decimal: value)
 			let max = maxFractionDigits == nil ? value.fractionLength : min(value.fractionLength, Int(maxFractionDigits!))
 			append(text: int)
-			guard !fraction.isEmpty || max > 0 else { return }
+			guard !fraction.isEmpty && max > 0 else { return }
 			append(text: ".")
 			append(text: String(fraction.prefix(max)))
     }
