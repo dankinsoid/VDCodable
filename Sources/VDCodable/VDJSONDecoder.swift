@@ -11,18 +11,21 @@ import Foundation
 open class VDJSONDecoder {
 	
 	open var dateDecodingStrategy: DateDecodingStrategy
-    open var dataDecodingStrategy: DataDecodingStrategy
+	open var dataDecodingStrategy: DataDecodingStrategy
 	open var keyDecodingStrategy: KeyDecodingStrategy
 	open var tryDecodeFromQuotedString: Bool
-    open var decodeOneObjectAsArray: Bool
-    open var customDecoding: (([CodingKey], JSON) -> JSON)?
+	open var decodeOneObjectAsArray: Bool
+	open var customDecoding: (([CodingKey], JSON) -> JSON)?
 	public let userInfo: [CodingUserInfoKey : Any] = [:]
 	
-	public init(dateDecodingStrategy: DateDecodingStrategy = .deferredToDate,
-                dataDecodingStrategy: DataDecodingStrategy = .deferredToData,
-				keyDecodingStrategy: KeyDecodingStrategy = .useDefaultKeys,
-                decodeOneObjectAsArray: Bool = true,
-				tryDecodeFromQuotedString: Bool = true, customDecoding: (([CodingKey], JSON) -> JSON)? = nil) {
+	public init(
+		dateDecodingStrategy: DateDecodingStrategy = .deferredToDate,
+		dataDecodingStrategy: DataDecodingStrategy = .deferredToData,
+		keyDecodingStrategy: KeyDecodingStrategy = .useDefaultKeys,
+		decodeOneObjectAsArray: Bool = true,
+		tryDecodeFromQuotedString: Bool = true,
+		customDecoding: (([CodingKey], JSON) -> JSON)? = nil
+	) {
 		self.dateDecodingStrategy = dateDecodingStrategy
 		self.dataDecodingStrategy = dataDecodingStrategy
 		self.keyDecodingStrategy = keyDecodingStrategy
@@ -32,10 +35,10 @@ open class VDJSONDecoder {
 	}
 	
 	open func decode<D: Decodable>(_ type: D.Type, json: JSON) throws -> D {
-			if type == JSON.self, let result = json as? D { return (customDecoding?([], json) as? D) ?? result }
-			return try D.init(from: decoder(for: json))
+		if type == JSON.self, let result = json as? D { return (customDecoding?([], json) as? D) ?? result }
+		return try D.init(from: decoder(for: json))
 	}
-    
+	
 	open func decode<D: Decodable>(_ type: D.Type, from data: Data) throws -> D {
 		let json = try JSON(from: data)
 		return try decode(type, json: json)
@@ -56,7 +59,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
 	let customDecoding: (([CodingKey], JSON) -> JSON)?
 	let tryDecodeFromQuotedString: Bool
 	let input: JSON
-
+	
 	init(input: JSON, path: [CodingKey], other unboxer: Unboxer) {
 		self.input = unboxer.customDecoding?(path, input) ?? input
 		codingPath = path
@@ -67,7 +70,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
 		decodeOneObjectAsArray = unboxer.decodeOneObjectAsArray
 		customDecoding = unboxer.customDecoding
 	}
-    
+	
 	init(json: JSON, dateDecodingStrategy: VDJSONDecoder.DateDecodingStrategy, dataDecodingStrategy: VDJSONDecoder.DataDecodingStrategy, keyDecodingStrategy: KeyDecodingStrategy, decodeOneObjectAsArray: Bool, tryDecodeFromQuotedString: Bool, customDecoding: (([CodingKey], JSON) -> JSON)?) {
 		self.dateDecodingStrategy = dateDecodingStrategy
 		self.dataDecodingStrategy = dataDecodingStrategy
@@ -78,7 +81,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
 		self.codingPath = []
 		self.input = customDecoding?([], json) ?? json
 	}
-    
+	
 	func decodeArray() throws -> [JSON] {
 		switch input {
 		case .string:
@@ -90,38 +93,38 @@ fileprivate struct Unboxer: DecodingUnboxer {
 			return try _decodeArray(json: input)
 		}
 	}
-    
-    private func _decodeArray(json: JSON) throws -> [JSON] {
-        switch json {
-        case .array(let result):
-            return result
-        default:
-            if self.decodeOneObjectAsArray {
-                return [json]
-            } else {
-                throw DecodingError.typeMismatch([JSON].self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Expected to decode array but found \(json.kind) instead."))
-            }
-        }
-    }
-    
-    func decodeDictionary() throws -> [String: JSON] {
-        var dictionary = try decode([String: JSON].self) { try JSON(from: &$0)~!.object~! }
-        if case .useDefaultKeys = keyDecodingStrategy {
-            return dictionary
-        }
-        for (key, value) in dictionary {
-            dictionary[key] = nil
-            switch keyDecodingStrategy {
-            case .useDefaultKeys:
-                dictionary[key] = value
-            case .convertFromSnakeCase(let set):
-                dictionary[KeyDecodingStrategy.keyFromSnakeCase(key, separators: set)] = value
-            case .custom(let fun):
-                dictionary[fun(codingPath)] = value
-            }
-        }
-        return dictionary
-    }
+	
+	private func _decodeArray(json: JSON) throws -> [JSON] {
+		switch json {
+		case .array(let result):
+			return result
+		default:
+			if self.decodeOneObjectAsArray {
+				return [json]
+			} else {
+				throw DecodingError.typeMismatch([JSON].self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Expected to decode array but found \(json.kind) instead."))
+			}
+		}
+	}
+	
+	func decodeDictionary() throws -> [String: JSON] {
+		var dictionary = try decode([String: JSON].self) { try JSON(from: &$0)~!.object~! }
+		if case .useDefaultKeys = keyDecodingStrategy {
+			return dictionary
+		}
+		for (key, value) in dictionary {
+			dictionary[key] = nil
+			switch keyDecodingStrategy {
+			case .useDefaultKeys:
+				dictionary[key] = value
+			case .convertFromSnakeCase(let set):
+				dictionary[KeyDecodingStrategy.keyFromSnakeCase(key, separators: set)] = value
+			case .custom(let fun):
+				dictionary[fun(codingPath)] = value
+			}
+		}
+		return dictionary
+	}
 	
 	@inline(__always)
 	func decodeNil() -> Bool {
@@ -131,7 +134,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
 	
 	@inline(__always)
 	func decode(_ type: Bool.Type) throws -> Bool {
-        return try decode(type) { try $0.nextBool() }
+		return try decode(type) { try $0.nextBool() }
 	}
 	
 	@inline(__always)
@@ -142,50 +145,50 @@ fileprivate struct Unboxer: DecodingUnboxer {
 		throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: codingPath, debugDescription: "Expected to decode \(type) but found \(input.kind) instead."))
 	}
 	
-    @inline(__always)
-    private func decode<T>(_ type: T.Type, block: @escaping (inout JSONScanner) throws -> T) throws -> T {
-        if let result = input.value as? T {
-            return result
-        }
-        if tryDecodeFromQuotedString, case .string(let string) = input {
-            let data = Data(string.utf8)
-            return try data.withUnsafeBytes { rawPointer -> T in
-                let source = rawPointer.bindMemory(to: UInt8.self)
-                var scanner = JSONScanner(source: source, messageDepthLimit: .max)
-                do {
-                    return try block(&scanner)
-                } catch  {
-                    throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: error.localizedDescription, underlyingError: error))
-                }
-            }
-        }
-        throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: codingPath, debugDescription: "Expected to decode \(type) but found \(input.kind) instead."))
-    }
-    
+	@inline(__always)
+	private func decode<T>(_ type: T.Type, block: @escaping (inout JSONScanner) throws -> T) throws -> T {
+		if let result = input.value as? T {
+			return result
+		}
+		if tryDecodeFromQuotedString, case .string(let string) = input {
+			let data = Data(string.utf8)
+			return try data.withUnsafeBytes { rawPointer -> T in
+				let source = rawPointer.bindMemory(to: UInt8.self)
+				var scanner = JSONScanner(source: source, messageDepthLimit: .max)
+				do {
+					return try block(&scanner)
+				} catch  {
+					throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: error.localizedDescription, underlyingError: error))
+				}
+			}
+		}
+		throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: codingPath, debugDescription: "Expected to decode \(type) but found \(input.kind) instead."))
+	}
+	
 	@inline(__always)
 	func decode(_ type: Double.Type) throws -> Double {
-        switch input {
-            case .double(let dbl): return dbl
-            case .decimal(let dbl): return Double(dbl)
-            case .int(let dbl): return Double(dbl)
-            default: break
-        }
-        return try decode(type) { try $0.nextDouble() }
+		switch input {
+		case .double(let dbl): return dbl
+		case .decimal(let dbl): return Double(dbl)
+		case .int(let dbl): return Double(dbl)
+		default: break
+		}
+		return try decode(type) { try $0.nextDouble() }
 	}
-    
-    func decode(_ type: Int.Type) throws -> Int {
-        return try decode(type) { try $0.nextSignedInteger() }
-    }
-    
-    func decodeDecimal() throws -> Decimal {
-        switch input {
-            case .double(let dbl): return Decimal(dbl)
-            case .decimal(let dbl): return dbl
-            case .int(let dbl): return Decimal(dbl)
-            default: break
-        }
-        return try decode(Decimal.self) { try $0.nextDecimal() }
-    }
+	
+	func decode(_ type: Int.Type) throws -> Int {
+		return try decode(type) { try $0.nextSignedInteger() }
+	}
+	
+	func decodeDecimal() throws -> Decimal {
+		switch input {
+		case .double(let dbl): return Decimal(dbl)
+		case .decimal(let dbl): return dbl
+		case .int(let dbl): return Decimal(dbl)
+		default: break
+		}
+		return try decode(Decimal.self) { try $0.nextDecimal() }
+	}
 	
 	@inline(__always)
 	func decodeDate(from decoder: VDDecoder<Unboxer>) throws -> Date {
@@ -199,11 +202,11 @@ fileprivate struct Unboxer: DecodingUnboxer {
 			return Date(timeIntervalSince1970: milliseconds / 1000)
 		case .iso8601:
 			let string = try String(from: decoder)
-            if let result = _iso8601Formatter.date(from: string) {
-                return result
-            } else {
-                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Expected date string to be ISO8601-formatted."))
-            }
+			if let result = _iso8601Formatter.date(from: string) {
+				return result
+			} else {
+				throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Expected date string to be ISO8601-formatted."))
+			}
 		case .formatted(let formatter):
 			let string = try String(from: decoder)
 			if let result = formatter.date(from: string) {
@@ -224,45 +227,55 @@ fileprivate struct Unboxer: DecodingUnboxer {
 			return try transform(decoder)
 		}
 	}
-    
-    @inline(__always)
-    func decodeData(from decoder: VDDecoder<Unboxer>) throws -> Data {
-        switch dataDecodingStrategy {
-        case .deferredToData: return try Data(from: decoder)
-        case .base64:
-            return try decode(Data.self) { try $0.nextBytesValue() }
-        case .custom(let transform):
-            return try transform(decoder)
-        }
-    }
-    
+	
+	@inline(__always)
+	func decodeData(from decoder: VDDecoder<Unboxer>) throws -> Data {
+		switch dataDecodingStrategy {
+		case .deferredToData: return try Data(from: decoder)
+		case .base64:
+			return try decode(Data.self) { try $0.nextBytesValue() }
+		case .custom(let transform):
+			return try transform(decoder)
+		}
+	}
+	
 	@inline(__always)
 	func decode<T: Decodable>(_ type: T.Type) throws -> T {
 		if type == JSON.self, let result = input as? T { return result }
-        let decoder = VDDecoder(unboxer: self)
+		let decoder = VDDecoder(unboxer: self)
 		if type == Date.self || type as? NSDate.Type != nil {
 			let result = try decodeDate(from: decoder)
-            return try cast(result, as: type)
+			return try cast(result, as: type)
 		}
-        if type == Data.self || type as? NSData.Type != nil {
-            let result = try decodeData(from: decoder)
-            return try cast(result, as: type)
-        }
-        if type == Decimal.self || type as? NSDecimalNumber.Type != nil {
-            let result = try decodeDecimal()
-            return try cast(result, as: type)
-        }
+		if type == Data.self || type as? NSData.Type != nil {
+			let result = try decodeData(from: decoder)
+			return try cast(result, as: type)
+		}
+		if type == URL.self || type as? NSURL.Type != nil {
+			let string = try decode(String.self)
+			let result = try decodeUrl(from: string)
+			return try cast(result, as: type)
+		}
+		if type == Decimal.self || type as? NSDecimalNumber.Type != nil {
+			let result = try decodeDecimal()
+			return try cast(result, as: type)
+		}
 		return try T.init(from: decoder)
 	}
-    
-    private func cast<A, T>(_ value: A, as type: T.Type) throws -> T {
-        if let result = value as? T {
-            return result
-        } else {
-            throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: codingPath, debugDescription: "Expected to decode \(type) but found \(String(describing: A.self)) instead."))
-        }
-    }
 	
+	private func cast<A, T>(_ value: A, as type: T.Type) throws -> T {
+		if let result = value as? T {
+			return result
+		} else {
+			throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: codingPath, debugDescription: "Expected to decode \(type) but found \(String(describing: A.self)) instead."))
+		}
+	}
+	
+	private func decodeUrl(from string: String) throws -> URL {
+		if let url = URL(string: string) { return url }
+		if let url = URL(string: string.replacingOccurrences(of: "\\/", with: "/")) { return url }
+		throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Incorrect url \"\(string)\"", underlyingError: nil))
+	}
 }
 
 fileprivate let _dateFormatter = DateFormatter()
