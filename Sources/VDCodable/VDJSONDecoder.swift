@@ -168,9 +168,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
 	@inline(__always)
 	func decode(_ type: Double.Type) throws -> Double {
 		switch input {
-		case .double(let dbl): return dbl
-		case .decimal(let dbl): return Double(dbl)
-		case .int(let dbl): return Double(dbl)
+		case .number(let dbl): return Double(dbl)
 		default: break
 		}
 		return try decode(type) { try $0.nextDouble() }
@@ -182,9 +180,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
 	
 	func decodeDecimal() throws -> Decimal {
 		switch input {
-		case .double(let dbl): return Decimal(dbl)
-		case .decimal(let dbl): return dbl
-		case .int(let dbl): return Decimal(dbl)
+		case .number(let dbl): return dbl
 		default: break
 		}
 		return try decode(Decimal.self) { try $0.nextDecimal() }

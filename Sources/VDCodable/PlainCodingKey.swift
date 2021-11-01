@@ -7,9 +7,17 @@
 
 import Foundation
 
-public struct PlainCodingKey: CodingKey, ExpressibleByStringInterpolation {
+public struct PlainCodingKey: CodingKey, ExpressibleByStringInterpolation, CustomStringConvertible {
 	public var stringValue: String
 	public var intValue: Int?
+	
+	public var description: String {
+		if let i = intValue {
+			return "\(i)"
+		} else {
+			return stringValue
+		}
+	}
 	
 	public init?(intValue: Int) {
 		self.intValue = intValue

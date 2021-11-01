@@ -9,9 +9,7 @@ import Foundation
 @dynamicMemberLookup
 public enum JSON: Codable {
     case bool(Bool)
-    case int(Int)
-    case decimal(Decimal)
-    case double(Double)
+    case number(Decimal)
     case string(String)
     case array([JSON])
     case object([String: JSON])
@@ -33,9 +31,9 @@ public enum JSON: Codable {
     
     public init?(with value: Any) {
         if let bl  = value as? Bool   { self = .bool(bl);    return }
-        if let int = value as? Int    { self = .int(int);    return }
-        if let db  = value as? Decimal { self = .decimal(db);  return }
-        if let db  = value as? Double { self = .double(db);  return }
+				if let int = value as? Int    { self = .number(Decimal(int)); return }
+        if let db  = value as? Decimal { self = .number(db);  return }
+        if let db  = value as? Double { self = .number(Decimal(db));  return }
         if let str = value as? String { self = .string(str); return }
         if let arr = value as? [Any] {
             var arrV: [JSON] = []
@@ -108,21 +106,8 @@ public enum JSON: Codable {
                 throw JSONDecodingError.failure
             }
         default:
-            do {
-                let dbl = try scanner.nextDecimal()
-                if dbl.fractionLength == 0 {
-                    self = .int((dbl as NSDecimalNumber).intValue)
-                } else {
-                    self = .decimal(dbl)
-                }
-            } catch {
-                let dbl = try scanner.nextDouble()
-                if dbl.truncatingRemainder(dividingBy: 1) == 0 {
-                    self = .int(Int(dbl))
-                } else {
-                    self = .double(dbl)
-                }
-            }
+					let dbl = try scanner.nextDecimal()
+					self = .number(dbl)
         }
     }
     
@@ -147,9 +132,7 @@ public enum JSON: Codable {
         }
         let singleContainer = try decoder.singleValueContainer()
         if let b = try? singleContainer.decode(Bool.self)   { self = .bool(b);   return }
-        if let i = try? singleContainer.decode(Int.self)    { self = .int(i);    return }
-        if let d = try? singleContainer.decode(Decimal.self) { self = .decimal(d); return }
-        if let d = try? singleContainer.decode(Double.self) { self = .double(d); return }
+			if let d = try? singleContainer.decode(Decimal.self) { self = .number(d); return }
         if let s = try? singleContainer.decode(String.self) { self = .string(s); return }
         if singleContainer.decodeNil()                         { self = .null;      return }
         throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Invalid JSON data"))
@@ -159,9 +142,7 @@ public enum JSON: Codable {
         var singleContainer = encoder.singleValueContainer()
         switch self {
         case .bool(let b):   try singleContainer.encode(b)
-        case .int(let i):    try singleContainer.encode(i)
-        case .decimal(let d): try singleContainer.encode(d)
-        case .double(let d): try singleContainer.encode(d)
+        case .number(let d): try singleContainer.encode(d)
         case .string(let s): try singleContainer.encode(s)
         case .null:             try singleContainer.encodeNil()
         case .array(let a):
@@ -203,9 +184,7 @@ public enum JSON: Codable {
             encoder.closeSquareBracket()
             encoder.separator = sep
         case .bool(let bool):     encoder.putBoolValue(value: bool)
-        case .int(let int):       encoder.appendInt(value: Int64(int))
-        case .double(let double): encoder.putDoubleValue(value: double)
-        case .decimal(let decimal): encoder.putDecimalValue(value: decimal)
+        case .number(let number): encoder.putDecimalValue(value: number)
         case .string(let string): encoder.putStringValue(value: string)
         case .null:                  encoder.putNullValue()
         }
@@ -232,7 +211,7 @@ extension JSON {
         case .array(_):  return .array
         case .object(_): return .object
         case .bool(_):   return .boolean
-        case .double, .int, .decimal: return .number
+        case .number: return .number
         case .null:      return .null
         case .string(_): return .string
         }
@@ -243,9 +222,7 @@ extension JSON {
         case .array(let ar):     return ar
         case .object(let d):     return d
         case .bool(let b):       return b
-        case .double(let d):     return d
-        case .decimal(let d):    return d
-        case .int(let i):        return i
+        case .number(let d):    return d
         case .string(let s):     return s
         case .null:                 return nil
         }
@@ -255,26 +232,22 @@ extension JSON {
     
     public var int: Int? {
         switch self {
-        case .int(let i):      return i
         case .string(let str): return Int(str)
-        case .double(let d):   return Int(d)
-        case .decimal(let d):   return Int((d as NSDecimalNumber).intValue)
+        case .number(let d):   return Int((d as NSDecimalNumber).intValue)
         default: return nil
         }
     }
     
-    public var decimal: Decimal? {
+    public var number: Decimal? {
         switch self {
-        case .decimal(let d):  return d
+        case .number(let d):  return d
         default: return nil
         }
     }
     
     public var double: Double? {
         switch self {
-        case .double(let d):   return d
-        case .decimal(let d):  return (d as NSDecimalNumber).doubleValue
-        case .int(let i):      return Double(i)
+        case .number(let d):  return (d as NSDecimalNumber).doubleValue
         case .string(let str): return Double(str)
         default: return nil
         }
@@ -289,9 +262,7 @@ extension JSON {
             case "false", "no", "0": return false
             default: return nil
             }
-        case .int(let i):    if i == 1 || i == 0 { return i == 1 }
-        case .double(let i): if i == 1 || i == 0 { return i == 1 }
-        case .decimal(let i): if i == 1 || i == 0 { return i == 1 }
+        case .number(let i): if i == 1 || i == 0 { return i == 1 }
         default: return nil
         }
         return nil
@@ -331,9 +302,7 @@ extension JSON {
         case .array(let ar):     return ar.map { $0.extract() }
         case .object(let d):      return d.mapValues { $0.extract() }
         case .bool(let b):       return b
-        case .double(let d):     return d
-        case .decimal(let d):     return d
-        case .int(let i):        return i
+        case .number(let d):     return d
         case .string(let s):     return s
         case .null:                 return nil
         }
@@ -370,9 +339,7 @@ extension JSON: CustomStringConvertible {
     private func stringSlice() -> String {
         switch self {
         case .bool(let b):       return "\(b)"
-        case .int(let i):        return "\(i)"
-        case .double(let d):     return "\(d)"
-        case .decimal(let d):    return d.description
+        case .number(let d):    return d.description
         case .string(let str):   return "\"\(str)\""
         case .array(let a):      return "[\(a.map{ $0.stringSlice() }.joined(separator: ", "))]"
         case .object(let d):     return "{\n\(d.map{ "\"\($0.key)\": \($0.value.stringSlice())" }.joined(separator: ",\n"))\n}"
@@ -411,12 +378,12 @@ extension JSON: ExpressibleByDictionaryLiteral {
 
 extension JSON: ExpressibleByFloatLiteral {
     public typealias FloatLiteralType = Double
-    public init(floatLiteral value: Double) { self = .double(value) }
+    public init(floatLiteral value: Double) { self = .number(Decimal(value)) }
 }
 
 extension JSON: ExpressibleByIntegerLiteral {
     public typealias IntegerLiteralType = Int
-    public init(integerLiteral value: Int) { self = .int(value) }
+    public init(integerLiteral value: Int) { self = .number(Decimal(value)) }
 }
 
 extension JSON: ExpressibleByBooleanLiteral {
@@ -506,9 +473,7 @@ extension JSON: Hashable {
     public func hash(into hasher: inout Hasher) {
         switch self {
         case .bool(let b):   b.hash(into: &hasher)
-        case .int(let i):    i.hash(into: &hasher)
-        case .double(let d): d.hash(into: &hasher)
-        case .decimal(let d): d.hash(into: &hasher)
+        case .number(let d): d.hash(into: &hasher)
         case .string(let s): s.hash(into: &hasher)
         case .array(let a):  a.hash(into: &hasher)
         case .object(let d): d.hash(into: &hasher)
@@ -519,9 +484,7 @@ extension JSON: Hashable {
     public static func ==(_ lhs: JSON, _ rhs: JSON) -> Bool {
         switch (lhs, rhs) {
         case (.bool(let l),      .bool(let r)):   return l == r
-        case (.int(let l),       .int(let r)):    return l == r
-        case (.double(let l), .double(let r)): return l == r
-        case (.decimal(let l), .decimal(let r)): return l == r
+        case (.number(let l), .number(let r)): return l == r
         case (.string(let l), .string(let r)): return l == r
         case (.array(let l),  .array(let r)):  return l == r
         case (.object(let l), .object(let r)): return l == r
