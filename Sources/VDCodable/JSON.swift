@@ -16,7 +16,8 @@ public enum JSON: Codable {
     case null
     
     public subscript(dynamicMember member: String) -> JSON {
-        return self[member] ?? .null
+			get { self[member] ?? .null }
+			set { self[member] = newValue }
     }
     
     public var data: Data {
@@ -219,12 +220,12 @@ extension JSON {
     
     public var value : Any? {
         switch self {
-        case .array(let ar):     return ar
-        case .object(let d):     return d
-        case .bool(let b):       return b
-        case .number(let d):    return d
-        case .string(let s):     return s
-        case .null:                 return nil
+        case .array(let ar):	return ar
+        case .object(let d):	return d
+        case .bool(let b):		return b
+        case .number(let d):	return d
+        case .string(let s):	return s
+        case .null:						return nil
         }
     }
     
@@ -281,16 +282,52 @@ extension JSON {
     public var isNull: Bool { return self == .null }
     
     public subscript(index: Int) -> JSON? {
-        if case .array(let arr) = self {
-            return index < arr.count && index >= 0 ? arr[index] : nil
-        }
-        return nil
+			get {
+				if case .array(let arr) = self {
+					return index < arr.count && index >= 0 ? arr[index] : nil
+				}
+				return nil
+			}
+			set {
+				if case .array(var arr) = self {
+					if index < arr.count && index >= 0 {
+						if let value = newValue {
+							arr[index] = value
+						} else {
+							arr.remove(at: index)
+						}
+						self = .array(arr)
+					}
+				}
+			}
     }
     
     public subscript(key: String) -> JSON? {
-        if case .object(let dict) = self { return dict[key] }
-        return nil
+			get {
+				if case .object(let dict) = self { return dict[key] }
+				return nil
+			} set {
+				if case .object(var dict) = self {
+					dict[key] = newValue
+					self = .object(dict)
+				}
+			}
     }
+	
+	public subscript(codingKey: CodingKey) -> JSON? {
+		switch self {
+		case .array(let array):
+			if let i = codingKey.intValue, i >= 0, i < array.count {
+				return array[i]
+			} else {
+				return nil
+			}
+		case .object(let dictionary):
+			return dictionary[codingKey.stringValue]
+		default:
+			return nil
+		}
+	}
     
     public subscript<T: RawRepresentable>(key: T) -> JSON? where T.RawValue == String {
         if case .object(let dict) = self { return dict[key.rawValue] }
