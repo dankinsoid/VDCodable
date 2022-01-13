@@ -10,7 +10,6 @@ public protocol DecodingUnboxer: SingleValueDecodingContainer {
 	associatedtype Input
 	var userInfo: [CodingUserInfoKey: Any] { get }
 	var input: Input { get }
-	var count: Int? { get }
 	init(input: Input, path: [CodingKey], other unboxer: Self)
 	func decodeArray() throws -> [Input]
 	func decodeDictionary() throws -> [String: Input]
@@ -22,7 +21,6 @@ public protocol DecodingUnboxer: SingleValueDecodingContainer {
 extension DecodingUnboxer {
 	
 	public var userInfo: [CodingUserInfoKey: Any] { return [:] }
-	public var count: Int? { nil }
 	
 	public func decode(_ type: Int8.Type) throws -> Int8 {
 		let int = try decode(Int.self)
@@ -394,7 +392,7 @@ fileprivate struct _KeyedDecodingContainer<Key: CodingKey, Unboxer: DecodingUnbo
 fileprivate struct _UnkeyedDecodingContaier<Unboxer: DecodingUnboxer>: UnkeyedDecodingContainer {
 	typealias Input = Unboxer.Input
 	var codingPath: [CodingKey] { return _unboxer.codingPath }
-	var count: Int? { _unboxer.count ?? input.count }
+	var count: Int? { input.count }
 	var currentIndex: Int = 0
 	var isAtEnd: Bool { return currentIndex >= input.count }
 	var input: [Input]
