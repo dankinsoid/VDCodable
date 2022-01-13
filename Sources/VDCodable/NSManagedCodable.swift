@@ -5,7 +5,7 @@
 //  Created by Данил Войдилов on 09/05/2019.
 //  Copyright © 2019 danil.voidilov. All rights reserved.
 //
-
+#if canImport(CoreData)
 import Foundation
 import CoreData
 
@@ -300,3 +300,4 @@ extension Set where Element == AnyHashable {
 	}
 	
 }
+#endif
