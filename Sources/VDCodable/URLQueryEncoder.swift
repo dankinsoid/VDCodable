@@ -64,12 +64,8 @@ open class URLQueryEncoder: CodableEncoder {
         switch json {
         case .bool(let value):
             return try boxer.encode(value)
-        case .int(let value):
-            return try boxer.encode(value)
-        case .decimal(let value):
+        case .number(let value):
             return try boxer.encode(value: value)
-        case .double(let value):
-            return try boxer.encode(value)
         case .string(let value):
             return try boxer.encode(value)
         case .array(let array):

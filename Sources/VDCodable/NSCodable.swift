@@ -5,6 +5,7 @@
 //  Created by Данил Войдилов on 20.04.2018.
 //  Copyright © 2018 Daniil Voidilov. All rights reserved.
 
+#if os(OSX) || os(tvOS) || os(watchOS) || os(iOS)
 import Foundation
 
 public protocol NSEncodable: Encodable where Self: NSObject {}
@@ -255,4 +256,4 @@ extension NSObject {
         return results
     }
 }
-
+#endif

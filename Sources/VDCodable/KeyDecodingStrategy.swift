@@ -55,7 +55,6 @@ public enum KeyDecodingStrategy {
         }
         return result
     }
-    
 }
 
 extension CharacterSet {
