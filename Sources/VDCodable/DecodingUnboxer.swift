@@ -16,6 +16,7 @@ public protocol DecodingUnboxer: SingleValueDecodingContainer {
 	func contains(key: String) -> Bool
 	func decodeFor(unknown key: CodingKey) throws -> Input?
 	func decodeNilOnFailure(key: CodingKey) -> Bool
+	func decodeNilIfNoValue(key: CodingKey) -> Bool
 }
 
 extension DecodingUnboxer {
@@ -101,6 +102,10 @@ extension DecodingUnboxer {
 	public func decodeNilOnFailure(key: CodingKey) -> Bool {
 		false
 	}
+	
+	public func decodeNilIfNoValue(key: CodingKey) -> Bool {
+		true
+	}
 }
 
 public struct VDDecoder<Unboxer: DecodingUnboxer>: Decoder {
@@ -164,7 +169,11 @@ fileprivate struct _KeyedDecodingContainer<Key: CodingKey, Unboxer: DecodingUnbo
 	
 	func decodeNil(forKey key: Key) throws -> Bool {
 		guard let js = try input[key.stringValue] ?? _unboxer.decodeFor(unknown: key) else {
-			throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
+			if _unboxer.decodeNilIfNoValue(key: key) {
+				return true
+			} else {
+				throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath + [key], debugDescription: "No value associated with key '\(key.stringValue)'."))
+			}
 		}
 		return unboxer(js, key).decodeNil()
 	}
