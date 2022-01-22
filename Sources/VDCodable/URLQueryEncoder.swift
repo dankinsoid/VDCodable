@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SimpleCoders
 
 open class URLQueryEncoder: CodableEncoder {
     public typealias Output = [URLQueryItem]

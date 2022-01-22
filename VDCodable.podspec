@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
 s.name             = 'VDCodable'
-s.version          = '2.6.0'
+s.version          = '2.7.0'
 s.summary          = 'A short description of VDCodable.'
 
 s.description      = <<-DESC
@@ -14,7 +14,7 @@ s.author           = { 'voidilov' => 'voidilov@gmail.com' }
 s.source           = { :git => 'https://github.com/dankinsoid/VDCodable.git', :tag => s.version.to_s }
 
 s.ios.deployment_target = '10.0'
-s.swift_versions = '5.0'
+s.swift_versions = '5.5'
 s.source_files = 'Sources/VDCodable/**/*'
 
 end

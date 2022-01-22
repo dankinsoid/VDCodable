@@ -2,12 +2,12 @@
   "object": {
     "pins": [
       {
-        "package": "UnwrapOperator",
-        "repositoryURL": "https://github.com/dankinsoid/UnwrapOperator.git",
+        "package": "SimpleCoders",
+        "repositoryURL": "https://github.com/dankinsoid/SimpleCoders.git",
         "state": {
           "branch": null,
-          "revision": "b9f1b637350e8802283322537d1b760f3ba61a64",
-          "version": "0.1.0"
+          "revision": "419723321ff52a6a79bbefc58d0eaf220decba62",
+          "version": "1.0.0"
         }
       }
     ]

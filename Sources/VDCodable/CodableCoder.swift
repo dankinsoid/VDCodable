@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SimpleCoders
 
 open class VDCoder<Input: Encodable, Output: Decodable>: CodableEncoder, CodableDecoder {
     

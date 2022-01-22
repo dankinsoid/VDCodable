@@ -5,6 +5,7 @@
 //
 
 import Foundation
+import SimpleCoders
 
 open class URLQueryDecoder: CodableDecoder {
     public typealias Input = URL

@@ -8,6 +8,7 @@
 #if canImport(CoreData)
 import Foundation
 import CoreData
+import SimpleCoders
 
 public protocol NSManagedDecodable: Decodable where Self: NSManagedObject {}
 public protocol NSManagedEncodable: Encodable where Self: NSManagedObject {}
