@@ -19,7 +19,7 @@ let package = Package(
 		),
 	],
 	dependencies: [
-		.package(name: "SimpleCoders", url: "https://github.com/dankinsoid/SimpleCoders.git", from: "1.1.0")
+		.package(name: "SimpleCoders", url: "https://github.com/dankinsoid/SimpleCoders.git", from: "1.2.0")
 	],
 	targets: [
 		// Targets are the basic building blocks of a package. A target can define a module or a test suite.
