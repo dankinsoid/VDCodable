@@ -1,23 +1,21 @@
-//
-//  MyJSONEncoder.swift
-//  Coders
-//
-//  Created by Данил Войдилов on 24/12/2018.
-//  Copyright © 2018 daniil. All rights reserved.
-//
-
 import Foundation
 import SimpleCoders
 
-open class VDJSONEncoder {
+open class VDJSONEncoder: CodableEncoder {
 	
-    open var dateEncodingStrategy: DateEncodingStrategy
+    open var dateEncodingStrategy: any DateEncodingStrategy
     open var dataEncodingStrategy: DataEncodingStrategy
-    open var keyEncodingStrategy: KeyEncodingStrategy
+    open var keyEncodingStrategy: any KeyEncodingStrategy
     open var maximumFractionLength: Int32?
     open var customEncoding: (([CodingKey], Data) throws -> Data)?
     
-    public init(dateEncodingStrategy: DateEncodingStrategy = .deferredToDate, dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy = .deferredToData, keyEncodingStrategy: KeyEncodingStrategy = .useDefaultKeys, maximumFractionLength: Int32? = nil, customEncoding: (([CodingKey], Data) throws -> Data)? = nil) {
+    public init(
+        dateEncodingStrategy: any DateEncodingStrategy = DefferedToDateCodingStrategy(),
+        dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy = .deferredToData,
+        keyEncodingStrategy: any KeyEncodingStrategy = UseDeafultKeyCodingStrategy(),
+        maximumFractionLength: Int32? = nil,
+        customEncoding: (([CodingKey], Data) throws -> Data)? = nil
+    ) {
         self.dateEncodingStrategy = dateEncodingStrategy
         self.dataEncodingStrategy = dataEncodingStrategy
         self.keyEncodingStrategy = keyEncodingStrategy
@@ -26,7 +24,15 @@ open class VDJSONEncoder {
     }
 	
 	open func encode<T: Encodable>(_ value: T) throws -> Data {
-        var encoder = VDEncoder(boxer: Boxer(dateEncodingStrategy: dateEncodingStrategy, keyEncodingStrategy: keyEncodingStrategy, dataEncodingStrategy: dataEncodingStrategy, maximumFractionLength: maximumFractionLength, customEncoding: customEncoding))
+        var encoder = VDEncoder(
+            boxer: Boxer(
+                dateEncodingStrategy: dateEncodingStrategy,
+                keyEncodingStrategy: keyEncodingStrategy,
+                dataEncodingStrategy: dataEncodingStrategy,
+                maximumFractionLength: maximumFractionLength,
+                customEncoding: customEncoding
+            )
+        )
         let data = try encoder.encode(value)
         return data
 	}
@@ -41,18 +47,19 @@ open class VDJSONEncoder {
 	
 }
 
-fileprivate struct Boxer: EncodingBoxer {
+private struct Boxer: EncodingBoxer {
+    
     let codingPath: [CodingKey]
-    let dateEncodingStrategy: VDJSONEncoder.DateEncodingStrategy
+    let dateEncodingStrategy: any DateEncodingStrategy
     let dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy
-    let keyEncodingStrategy: KeyEncodingStrategy
+    let keyEncodingStrategy: any KeyEncodingStrategy
     let customEncoding: (([CodingKey], Data) throws -> Data)?
     let maximumFractionLength: Int32?
     private var encoder: ProtobufJSONEncoder {
         return ProtobufJSONEncoder(maxFractionDigits: maximumFractionLength)
     }
     
-    init(dateEncodingStrategy: VDJSONEncoder.DateEncodingStrategy, keyEncodingStrategy: KeyEncodingStrategy, dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy, maximumFractionLength: Int32?, customEncoding: (([CodingKey], Data) throws -> Data)?) {
+    init(dateEncodingStrategy: any DateEncodingStrategy, keyEncodingStrategy: any KeyEncodingStrategy, dataEncodingStrategy: VDJSONEncoder.DataEncodingStrategy, maximumFractionLength: Int32?, customEncoding: (([CodingKey], Data) throws -> Data)?) {
         self.dateEncodingStrategy = dateEncodingStrategy
         self.dataEncodingStrategy = dataEncodingStrategy
         self.keyEncodingStrategy = keyEncodingStrategy
@@ -125,46 +132,21 @@ fileprivate struct Boxer: EncodingBoxer {
         encoder.separator = nil
         encoder.openCurlyBracket()
         for (key, value) in dictionary {
-            encoder.startField(name: self.key(for: key))
+            try encoder.startField(name: self.key(for: key))
             encoder.append(utf8Data: value)
         }
         encoder.closeCurlyBracket()
         return try encodeAny(encoder.dataResult)
     }
     
-    private func key(for string: String) -> String {
-        switch keyEncodingStrategy {
-        case .useDefaultKeys:
-            return string
-        case .convertToSnakeCase(let separator):
-            return KeyEncodingStrategy.keyToSnakeCase(string, separator: separator)
-        case .custom(let block):
-            return block(codingPath)
-        }
+    private func key(for string: String) throws -> String {
+        try keyEncodingStrategy.encode(currentKey: PlainCodingKey(string), codingPath: codingPath)
     }
     
     func encode(date: Date) throws -> Data {
-        switch dateEncodingStrategy {
-        case .deferredToDate:
-            var encoder = VDEncoder(boxer: self)
-            return try encoder.encode(date)
-        case .secondsSince1970:
-            return try encode(date.timeIntervalSince1970)
-        case .millisecondsSince1970:
-            return try encode(date.timeIntervalSince1970 * 1000)
-        case .iso8601:
-            return try encode(_iso8601Formatter.string(from: date))
-        case .formatted(let formatter):
-            return try encode(formatter.string(from: date))
-        case .stringFormat(let format):
-            let formatter = DateFormatter()
-            formatter.dateFormat = format
-            return try encode(formatter.string(from: date))
-        case .custom(let block):
-            var encoder = self.encoder
-            try block(VDEncoder(boxer: self)).putSelf(to: &encoder)
-            return try encodeAny(encoder.dataResult)
-        }
+        var encoder = VDEncoder(boxer: self)
+        try dateEncodingStrategy.encode(date, to: encoder)
+        return try encoder.get()
     }
     
     func encode(data: Data) throws -> Data {

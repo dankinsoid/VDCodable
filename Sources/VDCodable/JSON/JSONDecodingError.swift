@@ -15,6 +15,7 @@
 import Foundation
 
 public enum JSONDecodingError: String, LocalizedError {
+    
     case failure = "Something was wrong"
     case malformedNumber = "A number could not be parsed"
     case numberRange = "Numeric value was out of range or was not an integer value when expected"

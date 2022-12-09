@@ -14,7 +14,7 @@ s.author           = { 'voidilov' => 'voidilov@gmail.com' }
 s.source           = { :git => 'https://github.com/dankinsoid/VDCodable.git', :tag => s.version.to_s }
 
 s.ios.deployment_target = '10.0'
-s.swift_versions = '5.5'
+s.swift_versions = '5.7'
 s.source_files = 'Sources/VDCodable/**/*'
 
 end

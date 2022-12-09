@@ -1,13 +1,8 @@
-//
-//  JSON.swift
-//
-//  Created by Данил Войдилов on 12/12/2018.
-//
-
 import Foundation
 
 @dynamicMemberLookup
 public enum JSON: Codable {
+    
     case bool(Bool)
     case number(Decimal)
     case string(String)
@@ -16,8 +11,8 @@ public enum JSON: Codable {
     case null
     
     public subscript(dynamicMember member: String) -> JSON {
-			get { self[member] ?? .null }
-			set { self[member] = newValue }
+        get { self[member] ?? .null }
+        set { self[member] = newValue }
     }
     
     public var data: Data {

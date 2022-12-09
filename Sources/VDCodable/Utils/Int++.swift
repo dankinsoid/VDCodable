@@ -13,7 +13,8 @@ where Self.Magnitude: UnsignedBitPatternInitializable, Self.Magnitude.Signed == 
 	init(bitPattern: Magnitude)
 }
 
-protocol UnsignedBitPatternInitializable where Signed.Magnitude == Self {
+protocol UnsignedBitPatternInitializable: FixedWidthInteger, UnsignedInteger where Signed.Magnitude == Self {
+    
 	associatedtype Signed: SignedBitPatternInitializable
 	init(bitPattern: Signed)
 }

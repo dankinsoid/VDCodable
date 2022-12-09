@@ -1,27 +1,19 @@
-//
-//  JSONScanDecoder.swift
-//  Coders
-//
-//  Created by Данил Войдилов on 23/12/2018.
-//  Copyright © 2018 daniil. All rights reserved.
-//
-
 import Foundation
 import SimpleCoders
 
-open class VDJSONDecoder {
+open class VDJSONDecoder: CodableDecoder {
 	
-	open var dateDecodingStrategy: DateDecodingStrategy
+	open var dateDecodingStrategy: any DateDecodingStrategy
 	open var dataDecodingStrategy: DataDecodingStrategy
-	open var keyDecodingStrategy: KeyDecodingStrategy
+	open var keyDecodingStrategy: any KeyDecodingStrategy
 	open var tryDecodeFromQuotedString: Bool
 	open var decodeOneObjectAsArray: Bool
 	open var customDecoding: (([CodingKey], JSON) -> JSON)?
 	
 	public init(
-		dateDecodingStrategy: DateDecodingStrategy = .deferredToDate,
+		dateDecodingStrategy: any DateDecodingStrategy = DefferedToDateCodingStrategy(),
 		dataDecodingStrategy: DataDecodingStrategy = .deferredToData,
-		keyDecodingStrategy: KeyDecodingStrategy = .useDefaultKeys,
+		keyDecodingStrategy: any KeyDecodingStrategy = UseDeafultKeyCodingStrategy(),
 		decodeOneObjectAsArray: Bool = true,
 		tryDecodeFromQuotedString: Bool = true,
 		customDecoding: (([CodingKey], JSON) -> JSON)? = nil
@@ -68,11 +60,12 @@ open class VDJSONDecoder {
 }
 
 fileprivate struct Unboxer: DecodingUnboxer {
+    
 	let userInfo: [CodingUserInfoKey: Any] = [:]
 	let codingPath: [CodingKey]
-	let dateDecodingStrategy: VDJSONDecoder.DateDecodingStrategy
+	let dateDecodingStrategy: any DateDecodingStrategy
 	let dataDecodingStrategy: VDJSONDecoder.DataDecodingStrategy
-	let keyDecodingStrategy: KeyDecodingStrategy
+	let keyDecodingStrategy: KeyDecodingStrategy?
 	let decodeOneObjectAsArray: Bool
 	let customDecoding: (([CodingKey], JSON) -> JSON)?
 	let tryDecodeFromQuotedString: Bool
@@ -91,7 +84,16 @@ fileprivate struct Unboxer: DecodingUnboxer {
 		defaults = path.last.flatMap { unboxer.defaults?[$0] }
 	}
 	
-	init(json: JSON, dateDecodingStrategy: VDJSONDecoder.DateDecodingStrategy, dataDecodingStrategy: VDJSONDecoder.DataDecodingStrategy, keyDecodingStrategy: KeyDecodingStrategy, decodeOneObjectAsArray: Bool, tryDecodeFromQuotedString: Bool, customDecoding: (([CodingKey], JSON) -> JSON)?, defaults: JSON?) {
+	init(
+        json: JSON,
+        dateDecodingStrategy: any DateDecodingStrategy,
+        dataDecodingStrategy: VDJSONDecoder.DataDecodingStrategy,
+        keyDecodingStrategy: KeyDecodingStrategy?,
+        decodeOneObjectAsArray: Bool,
+        tryDecodeFromQuotedString: Bool,
+        customDecoding: (([CodingKey], JSON) -> JSON)?,
+        defaults: JSON?
+    ) {
 		self.dateDecodingStrategy = dateDecodingStrategy
 		self.dataDecodingStrategy = dataDecodingStrategy
 		self.keyDecodingStrategy = keyDecodingStrategy
@@ -142,19 +144,11 @@ fileprivate struct Unboxer: DecodingUnboxer {
 	
 	func decodeDictionary() throws -> [String: JSON] {
 		var dictionary = try decode([String: JSON].self) { try JSON(from: &$0)~!.object~! }
-		if case .useDefaultKeys = keyDecodingStrategy {
+		guard let keyDecodingStrategy else {
 			return dictionary
 		}
 		for (key, value) in dictionary {
-			dictionary[key] = nil
-			switch keyDecodingStrategy {
-			case .useDefaultKeys:
-				dictionary[key] = value
-			case .convertFromSnakeCase(let set):
-				dictionary[KeyDecodingStrategy.keyFromSnakeCase(key, separators: set)] = value
-			case .custom(let fun):
-				dictionary[fun(codingPath)] = value
-			}
+            try dictionary[keyDecodingStrategy.decode(currentKey: PlainCodingKey(key), codingPath: codingPath)] = value
 		}
 		return dictionary
 	}
@@ -291,41 +285,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
 	
 	@inline(__always)
 	private func decodeDate(from decoder: VDDecoder<Unboxer>) throws -> Date {
-		switch dateDecodingStrategy {
-		case .deferredToDate:
-			return try Date(from: decoder)
-		case .secondsSince1970:
-			let seconds = try Double(from: decoder)
-			return Date(timeIntervalSince1970: seconds)
-		case .millisecondsSince1970:
-			let milliseconds = try Double(from: decoder)
-			return Date(timeIntervalSince1970: milliseconds / 1000)
-		case .iso8601:
-			let string = try String(from: decoder)
-			if let result = _iso8601Formatter.date(from: string) {
-				return result
-			} else {
-				throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Expected date string to be ISO8601-formatted."))
-			}
-		case .formatted(let formatter):
-			let string = try String(from: decoder)
-			if let result = formatter.date(from: string) {
-				return result
-			} else {
-				throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Date string does not match format expected by formatter."))
-			}
-		case .stringFormats(let formats):
-			let string = try String(from: decoder)
-			for format in formats {
-				_dateFormatter.dateFormat = format
-				if let result = _dateFormatter.date(from: string) {
-					return result
-				}
-			}
-			throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Date string does not match '\(formats)'."))
-		case .custom(let transform):
-			return try transform(decoder)
-		}
+        try dateDecodingStrategy.decode(from: VDDecoder(unboxer: self))
 	}
 	
 	@inline(__always)

@@ -1,16 +1,14 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "SimpleCoders",
-        "repositoryURL": "https://github.com/dankinsoid/SimpleCoders.git",
-        "state": {
-          "branch": null,
-          "revision": "851020895e17b77180234a465c2d8b8050f11ca0",
-          "version": "1.2.0"
-        }
+  "pins" : [
+    {
+      "identity" : "simplecoders",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/dankinsoid/SimpleCoders.git",
+      "state" : {
+        "revision" : "1527a7ab9a00a7a8a5a031c3102efc9cfccb49d4",
+        "version" : "1.4.0"
       }
-    ]
-  },
-  "version": 1
+    }
+  ],
+  "version" : 2
 }

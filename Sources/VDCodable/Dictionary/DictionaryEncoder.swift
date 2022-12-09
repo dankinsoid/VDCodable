@@ -1,10 +1,3 @@
-//
-//  DictionaryEncoder.swift
-//  VDCodable
-//
-//  Created by Daniil on 11.08.2019.
-//
-
 import Foundation
 import SimpleCoders
 
@@ -46,5 +39,4 @@ fileprivate struct Boxer: EncodingBoxer {
     func encode(_ value: UInt16) throws -> Any { return value }
     func encode(_ value: UInt32) throws -> Any { return value }
     func encode(_ value: UInt64) throws -> Any { return value }
-    
 }

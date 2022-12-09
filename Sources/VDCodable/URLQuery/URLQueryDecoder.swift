@@ -117,15 +117,7 @@ fileprivate struct Unboxer: DecodingUnboxer {
                 _first = "\(i)"
                 i += 1
             }
-            let first: String
-            switch keyDecodingStrategy {
-            case .useDefaultKeys:
-                first = _first
-            case .convertFromSnakeCase(let set):
-                first = KeyDecodingStrategy.keyFromSnakeCase(_first, separators: set)
-            case .custom(let block):
-                first = block(codingPath + [PlainCodingKey(_first)])
-            }
+            let first = try keyDecodingStrategy.decode(currentKey: PlainCodingKey(_first), codingPath: codingPath)
             let new = (Array(keys.dropFirst()), value)
             if let query = result[first] {
                 guard !new.0.isEmpty, let arr = query.array else { throw QueryValue.Errors.unknown }

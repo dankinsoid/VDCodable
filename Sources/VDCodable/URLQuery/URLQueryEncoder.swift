@@ -9,15 +9,21 @@ import Foundation
 import SimpleCoders
 
 open class URLQueryEncoder: CodableEncoder {
+    
     public typealias Output = [URLQueryItem]
-    public let dateEncodingStrategy: DateEncodingStrategy
+    public let dateEncodingStrategy: any DateEncodingStrategy
     public var arrayEncodingStrategy: ArrayEncodingStrategy
     public var nestedEncodingStrategy: DictionaryEncodingStrategy
-    public var keyEncodingStrategy: KeyEncodingStrategy
+    public var keyEncodingStrategy: any KeyEncodingStrategy
     public var trimmingSquareBrackets = true
     
-    public init(keyEncodingStrategy: KeyEncodingStrategy = .useDefaultKeys, arrayEncodingStrategy: ArrayEncodingStrategy = .commaSeparator, nestedEncodingStrategy: DictionaryEncodingStrategy = .point) {
-        self.dateEncodingStrategy = .unixTimeSeconds
+    public init(
+        dateEncodingStrategy: any DateEncodingStrategy = SecondsSince1970CodingStrategy(),
+        keyEncodingStrategy: any KeyEncodingStrategy = UseDeafultKeyCodingStrategy(),
+        arrayEncodingStrategy: ArrayEncodingStrategy = .commaSeparator,
+        nestedEncodingStrategy: DictionaryEncodingStrategy = .point
+    ) {
+        self.dateEncodingStrategy = dateEncodingStrategy
         self.arrayEncodingStrategy = arrayEncodingStrategy
         self.nestedEncodingStrategy = nestedEncodingStrategy
         self.keyEncodingStrategy = keyEncodingStrategy
@@ -34,11 +40,19 @@ open class URLQueryEncoder: CodableEncoder {
     }
     
     open func encode<T: Encodable>(_ value: T) throws -> [URLQueryItem] {
-        let boxer = Boxer(keyEncodingStrategy: keyEncodingStrategy, dateEncodingStrategy: dateEncodingStrategy, arrayEncodingStrategy: arrayEncodingStrategy, nestedEncodingStrategy: nestedEncodingStrategy)
+        let boxer = Boxer(
+            keyEncodingStrategy: keyEncodingStrategy,
+            dateEncodingStrategy: dateEncodingStrategy,
+            arrayEncodingStrategy: arrayEncodingStrategy,
+            nestedEncodingStrategy: nestedEncodingStrategy
+        )
         var encoder = VDEncoder(boxer: boxer)
         let query: QueryValue
         if nestedEncodingStrategy == .json {
-            let encoder = VDJSONEncoder(dateEncodingStrategy: dateEncodingStrategy.jsonStrategy, keyEncodingStrategy: keyEncodingStrategy)
+            let encoder = VDJSONEncoder(
+                dateEncodingStrategy: dateEncodingStrategy,
+                keyEncodingStrategy: keyEncodingStrategy
+            )
             let json = try encoder.encodeToJSON(value)
             query = try self.query(from: json, boxer: boxer, root: true)
         } else {
@@ -91,6 +105,7 @@ open class URLQueryEncoder: CodableEncoder {
     }
     
     public enum ArrayEncodingStrategy {
+        
         case commaSeparator                   //value1,value2
         case associative(indexed: Bool)       //key[0]=value1&key[1]=value2
         case customSeparator(String)
@@ -100,48 +115,18 @@ open class URLQueryEncoder: CodableEncoder {
     public enum DictionaryEncodingStrategy {
         case squareBrackets, point, json
     }
-    
-    public enum DateEncodingStrategy {
-        case unixTimeSeconds
-        case unixTimeMilliseconds
-        case stringFormat(String)
-        case customFormat(DateFormatter)
-        case custom((_ encoder: Encoder) throws -> String)
-        case iso8601
-    }
-    
-}
-
-extension URLQueryEncoder.DateEncodingStrategy {
-    var jsonStrategy: VDJSONEncoder.DateEncodingStrategy {
-        switch self {
-        case .unixTimeSeconds:
-            return .secondsSince1970
-        case .unixTimeMilliseconds:
-            return .millisecondsSince1970
-        case .stringFormat(let format):
-            return .stringFormat(format)
-        case .customFormat(let formatter):
-            return .formatted(formatter)
-        case .custom(let block):
-            return .custom { encoder -> JSON in
-                return try .string(block(encoder))
-            }
-        case .iso8601:
-            return .iso8601
-        }
-    }
 }
 
 fileprivate struct Boxer: EncodingBoxer {
+    
     typealias Output = QueryValue
     let codingPath: [CodingKey]
-    let dateEncodingStrategy: URLQueryEncoder.DateEncodingStrategy
+    let dateEncodingStrategy: any DateEncodingStrategy
     let arrayEncodingStrategy: URLQueryEncoder.ArrayEncodingStrategy
     let nestedEncodingStrategy: URLQueryEncoder.DictionaryEncodingStrategy
     let keyEncodingStrategy: KeyEncodingStrategy
     
-    init(keyEncodingStrategy: KeyEncodingStrategy, dateEncodingStrategy: URLQueryEncoder.DateEncodingStrategy, arrayEncodingStrategy: URLQueryEncoder.ArrayEncodingStrategy, nestedEncodingStrategy: URLQueryEncoder.DictionaryEncodingStrategy) {
+    init(keyEncodingStrategy: any KeyEncodingStrategy, dateEncodingStrategy: any DateEncodingStrategy, arrayEncodingStrategy: URLQueryEncoder.ArrayEncodingStrategy, nestedEncodingStrategy: URLQueryEncoder.DictionaryEncodingStrategy) {
         self.codingPath = []
         self.keyEncodingStrategy = keyEncodingStrategy
         self.dateEncodingStrategy = dateEncodingStrategy
@@ -208,14 +193,7 @@ fileprivate struct Boxer: EncodingBoxer {
             if emptyKeys, Int(key) != nil {
                 key = ""
             } else {
-                switch keyEncodingStrategy {
-                case .useDefaultKeys:
-                    break
-                case .convertToSnakeCase(let separator):
-                    key = KeyEncodingStrategy.keyToSnakeCase(key, separator: separator)
-                case .custom(let block):
-                    key = block(codingPath + [PlainCodingKey(key)])
-                }
+                key = try keyEncodingStrategy.encode(currentKey: PlainCodingKey(key), codingPath: codingPath)
             }
             switch query {
             case .single(let value):
@@ -257,22 +235,9 @@ fileprivate struct Boxer: EncodingBoxer {
     }
     
     func encode(date: Date) throws -> QueryValue {
-        switch dateEncodingStrategy {
-        case .unixTimeSeconds:
-            return try encode(date.timeIntervalSince1970)
-        case .unixTimeMilliseconds:
-            return try encode(date.timeIntervalSince1970 * 1000)
-        case .stringFormat(let format):
-            let formatter = DateFormatter()
-            formatter.dateFormat = format
-            return try encode(formatter.string(from: date))
-        case .customFormat(let formatter):
-            return try encode(formatter.string(from: date))
-        case .custom(let block):
-            return try .single(block(VDEncoder(boxer: self)))
-        case .iso8601:
-            return try encode(_iso8601Formatter.string(from: date))
-        }
+        var encoder = VDEncoder(boxer: self)
+        try dateEncodingStrategy.encode(date, to: encoder)
+        return try encoder.get()
     }
     
     func encode<T: Encodable>(value: T) throws -> QueryValue {
