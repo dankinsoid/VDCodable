@@ -84,7 +84,7 @@ import PackageDescription
 let package = Package(
   name: "SomeProject",
   dependencies: [
-    .package(url: "https://github.com/dankinsoid/VDCodable.git", from: "2.12.0")
+    .package(url: "https://github.com/dankinsoid/VDCodable.git", from: "2.13.0")
     ],
   targets: [
     .target(name: "SomeProject", dependencies: ["VDCodable"])

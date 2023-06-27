@@ -57,7 +57,6 @@ open class URLQueryEncoder: CodableEncoder {
             query = try self.query(from: json, boxer: boxer, root: true)
         } else {
             query = try encoder.encode(value)
-            print(query)
         }
         return try boxer.getQuery(from: query)
     }
