@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/dankinsoid/SimpleCoders.git",
       "state" : {
-        "revision" : "1527a7ab9a00a7a8a5a031c3102efc9cfccb49d4",
-        "version" : "1.4.0"
+        "revision" : "5039cf84204e134fa558ea20a1e440db8618e977",
+        "version" : "1.5.0"
       }
     }
   ],

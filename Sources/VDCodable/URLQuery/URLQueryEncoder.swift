@@ -57,6 +57,7 @@ open class URLQueryEncoder: CodableEncoder {
             query = try self.query(from: json, boxer: boxer, root: true)
         } else {
             query = try encoder.encode(value)
+            print(query)
         }
         return try boxer.getQuery(from: query)
     }
@@ -80,7 +81,7 @@ open class URLQueryEncoder: CodableEncoder {
         case .bool(let value):
             return try boxer.encode(value)
         case .number(let value):
-            return try boxer.encode(value: value)
+            return try boxer.encode(decimal: value)
         case .string(let value):
             return try boxer.encode(value)
         case .array(let array):
@@ -238,6 +239,10 @@ fileprivate struct Boxer: EncodingBoxer {
         var encoder = VDEncoder(boxer: self)
         try dateEncodingStrategy.encode(date, to: encoder)
         return try encoder.get()
+    }
+    
+    func encode(decimal: Decimal) throws -> QueryValue {
+        return .single("\(decimal)")
     }
     
     func encode<T: Encodable>(value: T) throws -> QueryValue {
