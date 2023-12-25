@@ -9,12 +9,12 @@ public enum JSON: Codable {
     case array([JSON])
     case object([String: JSON])
     case null
-    
+
     public subscript(dynamicMember member: String) -> JSON {
         get { self[member] ?? .null }
         set { self[member] = newValue }
     }
-    
+
     public var data: Data {
         var encoder = ProtobufJSONEncoder()
         putSelf(to: &encoder)

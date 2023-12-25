@@ -9,7 +9,7 @@ let package = Package(
 		.library(name: "VDCodable", targets: ["VDCodable"])
 	],
 	dependencies: [
-		.package(url: "https://github.com/dankinsoid/SimpleCoders.git", from: "1.5.0")
+		.package(url: "https://github.com/dankinsoid/SimpleCoders.git", from: "1.6.0")
 	],
 	targets: [
 		.target(
