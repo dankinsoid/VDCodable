@@ -62,8 +62,8 @@ open class URLQueryEncoder: CodableEncoder {
     }
     
     open func encodePath<T: Encodable>(_ value: T) throws -> String {
-        let items = try encodeParameters(value)
-        return items.map { $0.key + QueryValue.setter + $0.value }.joined(separator: QueryValue.separator)
+        let items = try encode(value)
+        return items.map { $0.name + QueryValue.setter + ($0.value ?? "") }.joined(separator: QueryValue.separator)
     }
     
     open func encodeParameters<T: Encodable>(_ value: T) throws -> [String: String] {
